@@ -69,7 +69,6 @@ public class Bootstrap implements Callable<Integer> {
 	private boolean profileDir = false;
 
 	public static void main(String... args) {
-		System.out.println(LoggerFactory.getILoggerFactory().getClass().getName());
 		int exitCode = new CommandLine(new Bootstrap()).execute(args);
 		System.exit(exitCode);
 	}
