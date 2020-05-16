@@ -1,20 +1,13 @@
 package org.likide.bootstrap;
 
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpClient.Redirect;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.net.http.HttpResponse.BodyHandlers;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.attribute.PosixFilePermissions;
 import java.util.concurrent.Callable;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.likide.bootstrap.Constants.SystemProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +22,12 @@ import picocli.CommandLine.Option;
 )
 public class Bootstrap implements Callable<Integer> {
 
-	public static final Logger LOGGER = LoggerFactory.getLogger(Bootstrap.class);
+	static {
+		System.setProperty(SystemProperties.LOG4J2_DISABLE_JMX, "true");
+		System.setProperty(SystemProperties.LOG4J2_LEVEL, "warn");
+	}
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(Bootstrap.class);
 
 	@Option(
 			names = { "--name", "-n" },
@@ -68,6 +66,25 @@ public class Bootstrap implements Callable<Integer> {
 	)
 	private boolean profileDir = false;
 
+	@Option(
+			names = { "--miniconda-version" },
+			description = "Miniconda (python) version (${COMPLETION-CANDIDATES})",
+			defaultValue = "3"
+			
+	)
+	private MinicondaVersion minicondaVersion;
+
+	@Option(
+			names = { "--miniconda-url" },
+			description = "Download URL for miniconda url. Default value determined from 'Miniconda version' if omitted"
+	)
+	private String minicondaUrl;
+
+	@Option(
+			names = { "--verbose", "-v" }
+	)
+	private boolean[] verbose = new boolean[0];
+
 	public static void main(String... args) {
 		int exitCode = new CommandLine(new Bootstrap()).execute(args);
 		System.exit(exitCode);
@@ -75,34 +92,48 @@ public class Bootstrap implements Callable<Integer> {
 
 	@Override
 	public Integer call() throws Exception {
-		LOGGER.warn("Test {}", name);
-//		download();
-		return 0;
-	}
-
-	private void download() throws IOException, FileNotFoundException {
-		HttpClient client = HttpClient.newBuilder().followRedirects(Redirect.NORMAL).build();
-		HttpRequest request = HttpRequest.newBuilder()
-				.GET()
-				.uri(URI.create(Constants.DEFAULTS.MINICONDA_URL)).build();
-		Path condaTempFile = Files.createTempFile(
-				"bootstrap-miniconda-", ".sh",
-				PosixFilePermissions.asFileAttribute(
-						PosixFilePermissions.fromString("rwx------")));
+		FileRegistry fileRegistry = new FileRegistry();
+		
 		try {
-			HttpResponse<InputStream> response = client.sendAsync(request, BodyHandlers.ofInputStream()).join();
-			InputStream is = response.body();
-			byte[] data;
-			try (FileOutputStream fos = new FileOutputStream(condaTempFile.toFile())) {
-				while ((data = is.readNBytes(500000)).length != 0) {
-					fos.write(data);
-					System.out.print(".");
+			return doCall(fileRegistry);
+		} finally {
+			for (FileItem item : fileRegistry.getFiles()) {
+				try {
+					if (!Files.deleteIfExists(item.getPath())) {
+						LOGGER.warn("Temporary file cannot be cleaned: {}", item.getPath());
+					} else {
+						LOGGER.info("Temporary file removed: {}", item.getPath());
+					}
+				} catch (RuntimeException e) {
+					LOGGER.warn("Temporary file cannot be cleaned: {}", item.getPath(), e);
 				}
 			}
-			LOGGER.warn("Conda installer saved to {}", condaTempFile.toAbsolutePath());
-		} finally {
-//			Files.deleteIfExists(condaTempFile);
 		}
+	}
+
+	private Integer doCall(FileRegistry fileRegistry) throws IOException, DownloadFailureException {
+		if (verbose.length > 1) {
+			System.setProperty(SystemProperties.LOG4J2_LEVEL, "debug");
+		} else if (verbose.length > 0) {
+			System.setProperty(SystemProperties.LOG4J2_LEVEL, "info");
+		}
+		
+		((LoggerContext) LogManager.getContext(false)).reconfigure();
+		
+		if (minicondaUrl == null) {
+			switch (minicondaVersion) {
+			case _2: minicondaUrl = Constants.DEFAULTS.MINICONDA2_URL; break;
+			case _3: minicondaUrl = Constants.DEFAULTS.MINICONDA2_URL; break;
+			default:
+				throw new IllegalStateException(String.format("No miniconda download URL for version %s", minicondaVersion));
+			}
+			LOGGER.info("Using default Miniconda URL : {}", minicondaUrl);
+		}
+		
+		LOGGER.info("Download miniconda installer ({})", minicondaUrl);
+		Path minicondaInstaller = Downloader.download(minicondaUrl);
+		fileRegistry.addFile(new FileItem(minicondaInstaller));
+		return 0;
 	}
 
 }

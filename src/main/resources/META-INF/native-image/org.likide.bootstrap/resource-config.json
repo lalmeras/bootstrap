@@ -1,0 +1,7 @@
+{
+	"resources": [
+		{
+			"pattern": "log4j2.properties"
+		}
+	]
+}

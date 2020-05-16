@@ -15,6 +15,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.source>11</maven.compiler.source>
 		<maven.compiler.target>${maven.compiler.source}</maven.compiler.target>
+		<maven.compiler.release>${maven.compiler.source}</maven.compiler.release>
 
 		<maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
 		<maven-jar-plugin.version>3.2.0</maven-jar-plugin.version>
@@ -32,6 +33,11 @@
 			<groupId>info.picocli</groupId>
 			<artifactId>picocli</artifactId>
 			<version>${picocli.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>${slf4j.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
@@ -101,7 +107,7 @@
 					<skip>${variable.native-image.skip}</skip>
 					<imageName>${bootstrap.imageName}</imageName>
 					<buildArgs>
-						--no-fallback
+						--verbose -H:+PrintAnalysisCallTree -H:Log=registerResource
 					</buildArgs>
 				</configuration>
 			</plugin>
