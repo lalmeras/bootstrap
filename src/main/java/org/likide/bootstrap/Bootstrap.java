@@ -10,6 +10,7 @@ import org.apache.logging.log4j.core.LoggerContext;
 import org.likide.bootstrap.Constants.SystemProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -25,6 +26,9 @@ public class Bootstrap implements Callable<Integer> {
 	static {
 		System.setProperty(SystemProperties.LOG4J2_DISABLE_JMX, "true");
 		System.setProperty(SystemProperties.LOG4J2_LEVEL, "warn");
+		System.setProperty("org.jline.terminal.exec", "false");
+		SLF4JBridgeHandler.removeHandlersForRootLogger();
+		SLF4JBridgeHandler.install();
 	}
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(Bootstrap.class);
