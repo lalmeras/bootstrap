@@ -248,14 +248,6 @@
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
-  "name":"org.apache.logging.log4j.core.config.xml.XmlConfigurationFactory",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.apache.logging.log4j.core.config.yaml.YamlConfigurationFactory",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
   "name":"org.apache.logging.log4j.core.filter.AbstractFilterable$Builder",
   "allDeclaredFields":true
 },
@@ -293,14 +285,6 @@
 },
 {
   "name":"org.apache.logging.log4j.core.lookup.JavaLookup",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.apache.logging.log4j.core.lookup.JmxRuntimeInputArgumentsLookup",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.apache.logging.log4j.core.lookup.JndiLookup",
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {

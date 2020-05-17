@@ -8,8 +8,6 @@ module org.likide.bootstrap {
 	requires org.apache.logging.log4j;
 	requires org.apache.logging.log4j.core;
 	requires java.logging;
-
-	requires java.net.http;
 	
 	exports org.likide.bootstrap;
 	opens org.likide.bootstrap;

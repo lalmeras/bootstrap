@@ -1,23 +1,12 @@
 package org.likide.bootstrap;
 
 import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpClient.Redirect;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.net.http.HttpResponse.BodyHandlers;
-import java.net.http.HttpResponse.BodySubscriber;
-import java.net.http.HttpResponse.BodySubscribers;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Flow;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
 import java.util.concurrent.ScheduledExecutorService;
@@ -35,10 +24,10 @@ public class Downloader {
 	private static final Logger LOGGER = LoggerFactory.getLogger(Bootstrap.class);
 	
 	static Path download(String url) throws IOException, DownloadFailureException {
-		HttpClient client = HttpClient.newBuilder().followRedirects(Redirect.NORMAL).build();
-		HttpRequest request = HttpRequest.newBuilder()
-				.GET()
-				.uri(URI.create(url)).build();
+//		HttpClient client = HttpClient.newBuilder().followRedirects(Redirect.NORMAL).build();
+//		HttpRequest request = HttpRequest.newBuilder()
+//				.GET()
+//				.uri(URI.create(url)).build();
 		Path condaTempFile = Files.createTempFile(
 				"bootstrap-miniconda-", ".sh",
 				PosixFilePermissions.asFileAttribute(
@@ -54,14 +43,39 @@ public class Downloader {
 		try {
 			final AtomicInteger previousCounter = new AtomicInteger();
 			final AtomicInteger counter = new AtomicInteger();
-			BodySubscriber<Path> fileSubscriber = BodySubscribers.ofFile(condaTempFile);
-			HttpResponse<Flow.Publisher<List<ByteBuffer>>> response = client.sendAsync(request, BodyHandlers.ofPublisher()).join();
-			Flow.Publisher<List<ByteBuffer>> is = response.body();
-			is.subscribe(new ProgressDelegateSubscriber(fileSubscriber, counter));
-			CompletableFuture<Path> future = fileSubscriber.getBody().toCompletableFuture();
+			Subscriber<Path> fileSubscriber = new Subscriber<Path>() {
+
+				@Override
+				public void onSubscribe(Subscription subscription) {
+					// TODO Auto-generated method stub
+					
+				}
+
+				@Override
+				public void onNext(Path item) {
+					// TODO Auto-generated method stub
+					
+				}
+
+				@Override
+				public void onError(Throwable throwable) {
+					// TODO Auto-generated method stub
+					
+				}
+
+				@Override
+				public void onComplete() {
+					// TODO Auto-generated method stub
+					
+				}
+			};
+//			HttpResponse<Flow.Publisher<List<ByteBuffer>>> response = client.sendAsync(request, BodyHandlers.ofPublisher()).join();
+//			Flow.Publisher<List<ByteBuffer>> is = response.body();
+//			is.subscribe(new ProgressDelegateSubscriber(fileSubscriber, counter));
+//			CompletableFuture<Path> future = fileSubscriber.getBody().toCompletableFuture();
 			ScheduledExecutorService progressExecutor = Executors.newSingleThreadScheduledExecutor();
 			progressExecutor.scheduleAtFixedRate(() -> displayProgress(previousCounter, counter, finalTerminal), 0, 200, TimeUnit.MILLISECONDS);
-			future.get();
+//			future.get();
 			progressExecutor.shutdown();
 			progressExecutor.awaitTermination(10, TimeUnit.SECONDS);
 			displayProgress(previousCounter, counter, finalTerminal);
@@ -70,7 +84,7 @@ public class Downloader {
 			LOGGER.info("File downloaded {}", counter.get());
 			LOGGER.info("Conda installer saved to {}", condaTempFile.toAbsolutePath());
 			return condaTempFile;
-		} catch (RuntimeException | InterruptedException | ExecutionException e) {
+		} catch (RuntimeException | InterruptedException e) {
 			Files.deleteIfExists(condaTempFile);
 			String message = String.format("Download failure for %s (%s)", url, e.getMessage());
 			throw new DownloadFailureException(message, e);
