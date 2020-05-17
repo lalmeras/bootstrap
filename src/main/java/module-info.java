@@ -9,8 +9,6 @@ module org.likide.bootstrap {
 	requires org.apache.logging.log4j.core;
 	requires java.logging;
 
-	requires svm;
-
 	requires java.net.http;
 	
 	exports org.likide.bootstrap;

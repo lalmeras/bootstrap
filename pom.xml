@@ -41,18 +41,6 @@
 			<artifactId>jline-terminal</artifactId>
 			<version>${jline3.version}</version>
 		</dependency>
-		<!-- include GraalVM configuration for native-image -->
-		<dependency>
-			<groupId>org.jline</groupId>
-			<artifactId>jline-demo</artifactId>
-			<version>${jline3.version}</version>
-			<exclusions>
-				<exclusion>
-					<artifactId>*</artifactId>
-					<groupId>*</groupId>
-				</exclusion>
-			</exclusions>
-		</dependency>
 
 		<dependency>
 			<groupId>org.slf4j</groupId>
@@ -75,19 +63,19 @@
 			<version>${log4j2.version}</version>
 		</dependency>
 		
-		<dependency>
-			<groupId>com.oracle.substratevm</groupId>
-			<artifactId>svm</artifactId>
-			<version>1.0.0-rc15</version>
-			<scope>provided</scope>
-			<!-- We only want the included annotations -->
-			<exclusions>
-				<exclusion>
-					<artifactId>*</artifactId>
-					<groupId>*</groupId>
-				</exclusion>
-			</exclusions>
-		</dependency>
+<!-- 		<dependency> -->
+<!-- 			<groupId>com.oracle.substratevm</groupId> -->
+<!-- 			<artifactId>svm</artifactId> -->
+<!-- 			<version>1.0.0-rc15</version> -->
+<!-- 			<scope>provided</scope> -->
+	 			<!-- We only want the included annotations -->
+<!-- 			<exclusions> -->
+<!-- 				<exclusion> -->
+<!-- 					<artifactId>*</artifactId> -->
+<!-- 					<groupId>*</groupId> -->
+<!-- 				</exclusion> -->
+<!-- 			</exclusions> -->
+<!-- 		</dependency> -->
 
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>

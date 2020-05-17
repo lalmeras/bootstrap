@@ -7,10 +7,10 @@ import java.util.concurrent.Callable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
+import org.jline.terminal.TerminalBuilder;
 import org.likide.bootstrap.Constants.SystemProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -26,9 +26,12 @@ public class Bootstrap implements Callable<Integer> {
 	static {
 		System.setProperty(SystemProperties.LOG4J2_DISABLE_JMX, "true");
 		System.setProperty(SystemProperties.LOG4J2_LEVEL, "warn");
-		System.setProperty("org.jline.terminal.exec", "false");
-		SLF4JBridgeHandler.removeHandlersForRootLogger();
-		SLF4JBridgeHandler.install();
+//		System.setProperty("org.jline.terminal.exec", "true");
+//		System.setProperty("org.jline.terminal.jna", "true");
+//		System.setProperty("org.jline.terminal.jansi", "false");
+		java.util.logging.Logger.getLogger("org.jline").setLevel(java.util.logging.Level.ALL);
+//		SLF4JBridgeHandler.removeHandlersForRootLogger();
+//		SLF4JBridgeHandler.install();
 	}
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(Bootstrap.class);
@@ -117,12 +120,15 @@ public class Bootstrap implements Callable<Integer> {
 
 	private Integer doCall(FileRegistry fileRegistry) throws IOException, DownloadFailureException {
 		if (verbose.length > 1) {
-			System.setProperty(SystemProperties.LOG4J2_LEVEL, "debug");
+			System.setProperty(SystemProperties.LOG4J2_LEVEL, "trace");
 		} else if (verbose.length > 0) {
 			System.setProperty(SystemProperties.LOG4J2_LEVEL, "info");
 		}
+		LOGGER.warn("{}", TerminalBuilder.terminal().getWidth());
 		
 		((LoggerContext) LogManager.getContext(false)).reconfigure();
+//		SLF4JBridgeHandler.removeHandlersForRootLogger();
+//		SLF4JBridgeHandler.install();
 		
 		if (minicondaUrl == null) {
 			switch (minicondaVersion) {
