@@ -5,8 +5,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.Callable;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.core.LoggerContext;
 import org.jline.terminal.TerminalBuilder;
 import org.likide.bootstrap.Constants.SystemProperties;
 import org.slf4j.Logger;
@@ -126,7 +124,7 @@ public class Bootstrap implements Callable<Integer> {
 		}
 		LOGGER.warn("{}", TerminalBuilder.terminal().getWidth());
 		
-		((LoggerContext) LogManager.getContext(false)).reconfigure();
+//		((LoggerContext) LogManager.getContext(false)).reconfigure();
 //		SLF4JBridgeHandler.removeHandlersForRootLogger();
 //		SLF4JBridgeHandler.install();
 		

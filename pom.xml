@@ -5,12 +5,17 @@
 	<groupId>org.likide.bootstrap</groupId>
 	<artifactId>bootstrap</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
+	<packaging>pom</packaging>
+
+	<modules>
+		<module>bootstrap-cli</module>
+		<module>basic-cli</module>
+		<module>slf4j-cli</module>
+		<module>picocli-cli</module>
+	</modules>
 
 	<properties>
 		<variable.native-image.skip>true</variable.native-image.skip>
-
-		<bootstrap.mainClass>org.likide.bootstrap.Bootstrap</bootstrap.mainClass>
-		<bootstrap.imageName>bootstrap</bootstrap.imageName>
 
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.source>11</maven.compiler.source>
@@ -29,115 +34,164 @@
 		<junit.jupiter.version>5.6.2</junit.jupiter.version>
 	</properties>
 
-	<dependencies>
-		<dependency>
-			<groupId>info.picocli</groupId>
-			<artifactId>picocli</artifactId>
-			<version>${picocli.version}</version>
-		</dependency>
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>info.picocli</groupId>
+				<artifactId>picocli</artifactId>
+				<version>${picocli.version}</version>
+			</dependency>
 
-		<dependency>
-			<groupId>org.jline</groupId>
-			<artifactId>jline-terminal</artifactId>
-			<version>${jline3.version}</version>
-		</dependency>
+			<dependency>
+				<groupId>org.jline</groupId>
+				<artifactId>jline-terminal</artifactId>
+				<version>${jline3.version}</version>
+			</dependency>
 
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-api</artifactId>
-			<version>${slf4j.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>jul-to-slf4j</artifactId>
-			<version>${slf4j.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.logging.log4j</groupId>
-			<artifactId>log4j-slf4j18-impl</artifactId>
-			<version>${log4j2.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.logging.log4j</groupId>
-			<artifactId>log4j-core</artifactId>
-			<version>${log4j2.version}</version>
-		</dependency>
-		
-<!-- 		<dependency> -->
-<!-- 			<groupId>com.oracle.substratevm</groupId> -->
-<!-- 			<artifactId>svm</artifactId> -->
-<!-- 			<version>1.0.0-rc15</version> -->
-<!-- 			<scope>provided</scope> -->
-	 			<!-- We only want the included annotations -->
-<!-- 			<exclusions> -->
-<!-- 				<exclusion> -->
-<!-- 					<artifactId>*</artifactId> -->
-<!-- 					<groupId>*</groupId> -->
-<!-- 				</exclusion> -->
-<!-- 			</exclusions> -->
-<!-- 		</dependency> -->
+			<dependency>
+				<groupId>org.slf4j</groupId>
+				<artifactId>slf4j-api</artifactId>
+				<version>${slf4j.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.slf4j</groupId>
+				<artifactId>slf4j-simple</artifactId>
+				<version>${slf4j.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.slf4j</groupId>
+				<artifactId>jul-to-slf4j</artifactId>
+				<version>${slf4j.version}</version>
+			</dependency>
+			<!-- <dependency> -->
+			<!-- <groupId>org.apache.logging.log4j</groupId> -->
+			<!-- <artifactId>log4j-slf4j18-impl</artifactId> -->
+			<!-- <version>${log4j2.version}</version> -->
+			<!-- </dependency> -->
+			<!-- <dependency> -->
+			<!-- <groupId>org.apache.logging.log4j</groupId> -->
+			<!-- <artifactId>log4j-core</artifactId> -->
+			<!-- <version>${log4j2.version}</version> -->
+			<!-- </dependency> -->
 
-		<dependency>
-			<groupId>org.junit.jupiter</groupId>
-			<artifactId>junit-jupiter</artifactId>
-			<version>${junit.jupiter.version}</version>
-			<scope>test</scope>
-		</dependency>
-	</dependencies>
+			<dependency>
+				<groupId>com.oracle.substratevm</groupId>
+				<artifactId>svm</artifactId>
+				<version>1.0.0-rc15</version>
+				<scope>provided</scope>
+				<!-- We only want the included annotations -->
+				<exclusions>
+					<exclusion>
+						<artifactId>*</artifactId>
+						<groupId>*</groupId>
+					</exclusion>
+				</exclusions>
+			</dependency>
+
+			<dependency>
+				<groupId>org.junit.jupiter</groupId>
+				<artifactId>junit-jupiter</artifactId>
+				<version>${junit.jupiter.version}</version>
+				<scope>test</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 
 	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<!-- annotationProcessorPaths requires maven-compiler-plugin version 3.5 or higher -->
-				<version>${maven-compiler-plugin.version}</version>
-				<configuration>
-					<annotationProcessorPaths>
-						<path>
-							<groupId>info.picocli</groupId>
-							<artifactId>picocli-codegen</artifactId>
-							<version>${picocli.version}</version>
-						</path>
-					</annotationProcessorPaths>
-					<compilerArgs>
-						<arg>-Aproject=${project.groupId}/${project.artifactId}</arg>
-					</compilerArgs>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-jar-plugin</artifactId>
-				<version>${maven-jar-plugin.version}</version>
-				<configuration>
-					<archive>
-						<manifest>
-							<addClasspath>true</addClasspath>
-							<mainClass>${bootstrap.mainClass}</mainClass>
-						</manifest>
-					</archive>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.graalvm.nativeimage</groupId>
-				<artifactId>native-image-maven-plugin</artifactId>
-				<version>${graalvm.version}</version>
-				<executions>
-					<execution>
-						<goals>
-							<goal>native-image</goal>
-						</goals>
-						<phase>package</phase>
-					</execution>
-				</executions>
-				<configuration>
-					<skip>${variable.native-image.skip}</skip>
-					<imageName>${bootstrap.imageName}</imageName>
-					<buildArgs>
-						--verbose -H:+PrintAnalysisCallTree -H:Log=registerResource
-					</buildArgs>
-				</configuration>
-			</plugin>
-		</plugins>
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-compiler-plugin</artifactId>
+					<!-- annotationProcessorPaths requires maven-compiler-plugin version 3.5 or higher -->
+					<version>${maven-compiler-plugin.version}</version>
+					<configuration>
+						<annotationProcessorPaths>
+							<path>
+								<groupId>info.picocli</groupId>
+								<artifactId>picocli-codegen</artifactId>
+								<version>${picocli.version}</version>
+							</path>
+						</annotationProcessorPaths>
+						<compilerArgs>
+							<arg>-Aproject=${project.groupId}/${project.artifactId}</arg>
+						</compilerArgs>
+					</configuration>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-jar-plugin</artifactId>
+					<version>${maven-jar-plugin.version}</version>
+					<configuration>
+						<archive>
+							<manifest>
+								<addClasspath>true</addClasspath>
+								<mainClass>${bootstrap.mainClass}</mainClass>
+							</manifest>
+						</archive>
+					</configuration>
+				</plugin>
+				<plugin>
+					<groupId>org.graalvm.nativeimage</groupId>
+					<artifactId>native-image-maven-plugin</artifactId>
+					<version>${graalvm.version}</version>
+					<executions>
+						<execution>
+							<goals>
+								<goal>native-image</goal>
+							</goals>
+							<phase>package</phase>
+						</execution>
+					</executions>
+					<configuration>
+						<skip>${variable.native-image.skip}</skip>
+						<imageName>${bootstrap.imageName}</imageName>
+						<buildArgs>
+							--verbose -H:+PrintAnalysisCallTree -H:Log=registerResource
+						</buildArgs>
+					</configuration>
+				</plugin>
+				<plugin>
+					<groupId>com.igormaznitsa</groupId>
+					<artifactId>mvn-jlink-wrapper</artifactId>
+					<version>1.1.0</version>
+					<executions>
+						<execution>
+							<id>call-jdeps</id>
+							<goals>
+								<goal>jdeps</goal>
+							</goals>
+							<configuration>
+								<output>${project.build.directory}${file.separator}jdeps.out</output>
+								<options>
+									<option>${project.build.directory}${file.separator}${project.build.finalName}.jar</option>
+								</options>
+							</configuration>
+						</execution>
+						<execution>
+							<id>call-jlink</id>
+							<goals>
+								<goal>jlink</goal>
+							</goals>
+							<configuration>
+								<jdepsReportPath>${project.build.directory}${file.separator}jdeps.out</jdepsReportPath>
+								<output>${project.build.directory}${file.separator}preparedJDK</output>
+								<modulePaths>
+									<path>${java.home}${file.separator}jmods</path>
+								</modulePaths>
+								<addModules>
+									<module>java.compiler</module>
+								</addModules>
+								<options>
+									<option>--compress=2</option>
+									<option>--no-header-files</option>
+									<option>--no-man-pages</option>
+								</options>
+							</configuration>
+						</execution>
+					</executions>
+				</plugin>
+			</plugins>
+		</pluginManagement>
 	</build>
 </project>
