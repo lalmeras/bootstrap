@@ -5,10 +5,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.Callable;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.likide.bootstrap.Constants.SystemProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -22,14 +26,19 @@ import picocli.CommandLine.Option;
 public class Bootstrap implements Callable<Integer> {
 
 	static {
+		// configure log4j and slf4j before loading
 		System.setProperty(SystemProperties.LOG4J2_DISABLE_JMX, "true");
 		System.setProperty(SystemProperties.LOG4J2_LEVEL, "warn");
-//		System.setProperty("org.jline.terminal.exec", "true");
-//		System.setProperty("org.jline.terminal.jna", "true");
-//		System.setProperty("org.jline.terminal.jansi", "false");
+		
+		// configure jline
+		System.setProperty("org.jline.terminal.exec", "true");
+		System.setProperty("org.jline.terminal.jna", "true");
+		System.setProperty("org.jline.terminal.jansi", "false");
+		
+		// bind jline logging to slf4j
 		java.util.logging.Logger.getLogger("org.jline").setLevel(java.util.logging.Level.ALL);
-//		SLF4JBridgeHandler.removeHandlersForRootLogger();
-//		SLF4JBridgeHandler.install();
+		SLF4JBridgeHandler.removeHandlersForRootLogger();
+		SLF4JBridgeHandler.install();
 	}
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(Bootstrap.class);
@@ -90,17 +99,28 @@ public class Bootstrap implements Callable<Integer> {
 	)
 	private boolean[] verbose = new boolean[0];
 
+	private final FileRegistry fileRegistry = new FileRegistry();
+	private final Terminal terminal;
+
 	public static void main(String... args) {
 		int exitCode = new CommandLine(new Bootstrap()).execute(args);
 		System.exit(exitCode);
 	}
 
+	public Bootstrap() {
+		Terminal temp = null;
+		try {
+			temp = TerminalBuilder.terminal();
+		} catch (IOException e) {
+			LOGGER.warn("Failed to initialize jline terminal");
+		}
+		terminal = temp;
+	}
+
 	@Override
 	public Integer call() throws Exception {
-		FileRegistry fileRegistry = new FileRegistry();
-		
 		try {
-			return doCall(fileRegistry);
+			return doCall();
 		} finally {
 			for (FileItem item : fileRegistry.getFiles()) {
 				try {
@@ -116,18 +136,22 @@ public class Bootstrap implements Callable<Integer> {
 		}
 	}
 
-	private Integer doCall(FileRegistry fileRegistry) throws IOException, DownloadFailureException {
-		if (verbose.length > 1) {
-			System.setProperty(SystemProperties.LOG4J2_LEVEL, "trace");
-		} else if (verbose.length > 0) {
-			System.setProperty(SystemProperties.LOG4J2_LEVEL, "info");
-		}
-		LOGGER.warn("{}", TerminalBuilder.terminal().getWidth());
+	private Integer doCall() throws IOException, DownloadFailureException {
+		reconfigureLogging();
+		computeDefaults();
 		
-//		((LoggerContext) LogManager.getContext(false)).reconfigure();
-//		SLF4JBridgeHandler.removeHandlersForRootLogger();
-//		SLF4JBridgeHandler.install();
+		installMiniconda();
 		
+		return 0;
+	}
+
+	private void installMiniconda() throws IOException, DownloadFailureException {
+		LOGGER.info("Download miniconda installer ({})", minicondaUrl);
+		Path minicondaInstaller = Downloader.download(minicondaUrl, terminal);
+		fileRegistry.addFile(new FileItem(minicondaInstaller));
+	}
+
+	private void computeDefaults() {
 		if (minicondaUrl == null) {
 			switch (minicondaVersion) {
 			case _2: minicondaUrl = Constants.DEFAULTS.MINICONDA2_URL; break;
@@ -137,11 +161,19 @@ public class Bootstrap implements Callable<Integer> {
 			}
 			LOGGER.info("Using default Miniconda URL : {}", minicondaUrl);
 		}
+	}
+
+	private void reconfigureLogging() throws IOException {
+		if (verbose.length > 1) {
+			System.setProperty(SystemProperties.LOG4J2_LEVEL, "trace");
+		} else if (verbose.length > 0) {
+			System.setProperty(SystemProperties.LOG4J2_LEVEL, "info");
+		}
+		LOGGER.warn("{}", terminal.getWidth());
 		
-		LOGGER.info("Download miniconda installer ({})", minicondaUrl);
-		Path minicondaInstaller = Downloader.download(minicondaUrl);
-		fileRegistry.addFile(new FileItem(minicondaInstaller));
-		return 0;
+		((LoggerContext) LogManager.getContext(false)).reconfigure();
+		SLF4JBridgeHandler.removeHandlersForRootLogger();
+		SLF4JBridgeHandler.install();
 	}
 
 }
