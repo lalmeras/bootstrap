@@ -16,16 +16,12 @@ import java.nio.file.attribute.PosixFilePermissions;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Flow;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 import org.jline.terminal.Terminal;
-import org.jline.utils.InfoCmp.Capability;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,20 +29,14 @@ public class Downloader {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(Bootstrap.class);
 	
-	static Path download(String url, Terminal terminal) throws IOException, DownloadFailureException {
+	static Path download(String url, Terminal terminal) throws DownloadFailureException {
 		HttpClient client = HttpClient.newBuilder().followRedirects(Redirect.NORMAL).build();
 		HttpRequest request = HttpRequest.newBuilder()
 				.GET()
 				.uri(URI.create(url)).build();
-		Path condaTempFile = Files.createTempFile(
-				"bootstrap-miniconda-", ".sh",
-				PosixFilePermissions.asFileAttribute(
-						PosixFilePermissions.fromString("rwx------")));
+		Path condaTempFile = createTempFile();
 		
 		try {
-			final AtomicInteger previousCounter = new AtomicInteger();
-			final AtomicInteger counter = new AtomicInteger();
-			
 			// handle progress notification
 			// request
 			// -> BodyHandlers.ofPublisher : perform request, provides HTTP body as a publisher
@@ -58,92 +48,63 @@ public class Downloader {
 			HttpResponse<Flow.Publisher<List<ByteBuffer>>> response =
 					client.sendAsync(request, BodyHandlers.ofPublisher()).join();
 			
+			if (response.statusCode() != 200) {
+				throw new DownloadFailureException(
+						String.format("Download failure (%d) for %s", response.statusCode(), url));
+			}
+			
 			// get the BODY publisher
 			Flow.Publisher<List<ByteBuffer>> bodyPublisher = response.body();
-			final int contentLength = (int) response.headers().firstValueAsLong("content-length").orElse(0l);
+			final long contentLength = response.headers().firstValueAsLong("content-length").orElse(0l);
 			
 			// subscribe ProgressDelegateSubscriber that updates progress counter and pass content to a file subscriber
 			BodySubscriber<Path> fileSubscriber = BodySubscribers.ofFile(condaTempFile);
-			bodyPublisher.subscribe(new ProgressDelegateSubscriber(fileSubscriber, counter));
 			
-			// display progress in a separate thread
-			ScheduledExecutorService progressExecutor = Executors.newSingleThreadScheduledExecutor();
-			progressExecutor.scheduleAtFixedRate(
-					() -> displayProgress(previousCounter, contentLength, counter, terminal, false), 0, 200, TimeUnit.MILLISECONDS);
+			// prepare progress bar
+			ProgressBar progressBar = new ProgressBar(terminal, contentLength, Long::sum).start();
 			
 			// wait for download completion
+			bodyPublisher.subscribe(new ProgressDelegateSubscriber(fileSubscriber, progressBar));
 			CompletableFuture<Path> future = fileSubscriber.getBody().toCompletableFuture();
 			future.get();
-			progressExecutor.shutdown();
-			progressExecutor.awaitTermination(10, TimeUnit.SECONDS);
 			
-			// refresh progress display
-			displayProgress(previousCounter, contentLength, counter, terminal, true);
+			// end progress bar
+			progressBar.stop();
 			
-			LOGGER.info("File downloaded {}", counter.get());
+			LOGGER.info("File downloaded {}", contentLength);
 			LOGGER.info("Conda installer saved to {}", condaTempFile.toAbsolutePath());
 			return condaTempFile;
 		} catch (RuntimeException | InterruptedException | ExecutionException e) {
-			Files.deleteIfExists(condaTempFile);
+			if (e instanceof InterruptedException) {
+				Thread.currentThread().interrupt();
+			}
+			try {
+				Files.deleteIfExists(condaTempFile);
+			} catch (IOException ioe) {
+				LOGGER.warn("Temporary file cannot be cleaned: {}", condaTempFile, ioe);
+			}
 			String message = String.format("Download failure for %s (%s)", url, e.getMessage());
 			throw new DownloadFailureException(message, e);
 		}
 	}
 
-	private static void displayProgress(AtomicInteger previousCounter, int contentLength, AtomicInteger counter,
-			Terminal terminal, boolean end) {
-		// check terminal size
-		int width = 80;
-		int keep = 10 + 3;
-		if (terminal != null && terminal.getWidth() > 0) {
-			width = terminal.getWidth();
-		}
-		
-		// compute ratio
-		// maxChars is width minus reserved chars for brackets and extra informations
-		// currentChars is advancement in char length (progress bar)
-		// ratio is a percentage
-		int maxBytes = contentLength;
-		int maxChars = width - keep;
-		int currentCounter = counter.get();
-		int currentBytes = currentCounter;
-		int currentChars = (int) (maxChars * ((double) currentBytes / maxBytes));
-		int ratio = (int) (100 * ((double) currentBytes / maxBytes));
-		
-		// ensure that maxChars does not overflow maxChars
-		currentChars = Math.min(maxChars, currentChars);
-		
-		if (terminal != null && terminal.getStringCapability(Capability.parm_left_cursor) != null) {
-			// print progress-bar if line clearing is available
-			terminal.puts(Capability.parm_left_cursor, width);
-			terminal.flush();
-			if (currentBytes < maxBytes) {
-				terminal.writer().append(String.format("[%s>%s] %3d%%",
-						"-".repeat(currentChars),
-						" ".repeat(maxChars - currentChars - keep),
-						ratio)).flush();;
-			} else {
-				terminal.writer().append(String.format("[%s] %3d%%", "-".repeat(maxChars - keep + 1), ratio)).flush();
-			}
-		} else {
-			// print dot-bar if line clearing is not available
-			int previousBytes = previousCounter.get();
-			int previousChars = (int) (maxChars * ((double) previousBytes / maxBytes));
-			terminal.writer().append(".".repeat(currentChars - previousChars)).flush();
-			previousCounter.set(currentCounter);
-		}
-		if (end) {
-			// for last output, add newline
-			System.out.println();
+	private static Path createTempFile() throws DownloadFailureException {
+		try {
+			return Files.createTempFile(
+					"bootstrap-miniconda-", ".sh",
+					PosixFilePermissions.asFileAttribute(
+							PosixFilePermissions.fromString("rwx------")));
+		} catch (IOException e) {
+			throw new DownloadFailureException("Exception while creating temporary download file", e);
 		}
 	}
 
 	public static class ProgressDelegateSubscriber implements Subscriber<List<ByteBuffer>> {
 
 		private final Subscriber<List<ByteBuffer>> delegate;
-		private final AtomicInteger counter;
+		private final Consumer<Long> counter;
 		
-		public ProgressDelegateSubscriber(Subscriber<List<ByteBuffer>> delegate, AtomicInteger counter) {
+		public ProgressDelegateSubscriber(Subscriber<List<ByteBuffer>> delegate, Consumer<Long> counter) {
 			this.delegate = delegate;
 			this.counter = counter;
 		}
@@ -155,7 +116,7 @@ public class Downloader {
 
 		@Override
 		public void onNext(List<ByteBuffer> item) {
-			counter.addAndGet(item.stream().mapToInt(ByteBuffer::limit).sum());
+			counter.accept(item.stream().mapToLong(ByteBuffer::limit).sum());
 			delegate.onNext(item);
 		}
 
@@ -168,7 +129,7 @@ public class Downloader {
 		public void onComplete() {
 			delegate.onComplete();
 		}
-		
+
 	}
 
 }

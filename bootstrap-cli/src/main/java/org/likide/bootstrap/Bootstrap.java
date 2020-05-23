@@ -29,6 +29,7 @@ public class Bootstrap implements Callable<Integer> {
 		// configure log4j and slf4j before loading
 		System.setProperty(SystemProperties.LOG4J2_DISABLE_JMX, "true");
 		System.setProperty(SystemProperties.LOG4J2_LEVEL, "warn");
+		System.setProperty(SystemProperties.LOG4J2_CONFIG_THROWABLE, "%notEmpty{ -%throwable{short.message}{separator()}}");
 		
 		// configure jline
 		System.setProperty("org.jline.terminal.exec", "true");
@@ -99,6 +100,11 @@ public class Bootstrap implements Callable<Integer> {
 	)
 	private boolean[] verbose = new boolean[0];
 
+	@Option(
+			names = { "--debug", "-d" }
+	)
+	private boolean debug = false;
+
 	private final FileRegistry fileRegistry = new FileRegistry();
 	private final Terminal terminal;
 
@@ -118,9 +124,12 @@ public class Bootstrap implements Callable<Integer> {
 	}
 
 	@Override
-	public Integer call() throws Exception {
+	public Integer call() {
 		try {
 			return doCall();
+		} catch (DownloadFailureException e) {
+			LOGGER.error("Fatal error", e);
+			return 1;
 		} finally {
 			for (FileItem item : fileRegistry.getFiles()) {
 				try {
@@ -129,14 +138,14 @@ public class Bootstrap implements Callable<Integer> {
 					} else {
 						LOGGER.info("Temporary file removed: {}", item.getPath());
 					}
-				} catch (RuntimeException e) {
+				} catch (IOException | RuntimeException e) {
 					LOGGER.warn("Temporary file cannot be cleaned: {}", item.getPath(), e);
 				}
 			}
 		}
 	}
 
-	private Integer doCall() throws IOException, DownloadFailureException {
+	private Integer doCall() throws DownloadFailureException {
 		reconfigureLogging();
 		computeDefaults();
 		
@@ -145,7 +154,7 @@ public class Bootstrap implements Callable<Integer> {
 		return 0;
 	}
 
-	private void installMiniconda() throws IOException, DownloadFailureException {
+	private void installMiniconda() throws DownloadFailureException {
 		LOGGER.info("Download miniconda installer ({})", minicondaUrl);
 		Path minicondaInstaller = Downloader.download(minicondaUrl, terminal);
 		fileRegistry.addFile(new FileItem(minicondaInstaller));
@@ -163,11 +172,14 @@ public class Bootstrap implements Callable<Integer> {
 		}
 	}
 
-	private void reconfigureLogging() throws IOException {
+	private void reconfigureLogging() {
 		if (verbose.length > 1) {
 			System.setProperty(SystemProperties.LOG4J2_LEVEL, "trace");
 		} else if (verbose.length > 0) {
 			System.setProperty(SystemProperties.LOG4J2_LEVEL, "info");
+		}
+		if (debug) {
+			System.setProperty(SystemProperties.LOG4J2_CONFIG_THROWABLE, "%n%throwable");
 		}
 		LOGGER.warn("{}", terminal.getWidth());
 		

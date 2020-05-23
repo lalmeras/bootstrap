@@ -11,6 +11,7 @@ public final class Constants {
 
 		static final String LOG4J2_LEVEL = "log4j2.level";
 		static final String LOG4J2_DISABLE_JMX = "log4j2.disable.jmx";
+		static final String LOG4J2_CONFIG_THROWABLE = "log4j2.config.throwable";
 	};
 
 }
