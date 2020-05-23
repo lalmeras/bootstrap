@@ -13,4 +13,6 @@ module org.likide.bootstrap {
 	
 	exports org.likide.bootstrap;
 	opens org.likide.bootstrap;
+	
+	requires org.apache.logging.log4j.slf4j;
 }

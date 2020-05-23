@@ -1,0 +1,42 @@
+<project>
+	<target name="patch-modules" depends="patch-log4j-slf4j" />
+	<target name="patch-log4j-slf4j">
+		<patch-jar patch.basename="log4j-api" patch.module="org.apache.logging.log4j" />
+		<patch-jar patch.basename="log4j-core" patch.module="org.apache.logging.log4j.core" />
+		<patch-jar patch.basename="log4j-slf4j18-impl" patch.module="org.apache.logging.log4j.slf4j" />
+		<patch-jar patch.basename="jul-to-slf4j" patch.module="jul.to.slf4j" />
+		<patch-jar patch.basename="jline-terminal" patch.module="jline.terminal" />
+	</target>
+	<macrodef name="patch-jar">
+		<attribute name="patch.basename" />
+		<attribute name="patch.module" />
+		<sequential>
+			<local name="patch.outputDirectory" />
+			<property name="patch.outputDirectory" value="${project.build.directory}/patches/@{patch.basename}" />
+			
+			<first id="patch.jar">
+				<fileset id="patch.jars" dir="${project.build.directory}/dependency">
+					<filename regex="@{patch.basename}-[0-9].*.jar" />
+				</fileset>
+			</first>
+			<fail message="@{patch.basename} jar not found">
+				<condition>
+					<not>
+						<resourcecount count="1" refid="patch.jars" property="test" />
+					</not>
+				</condition>
+			</fail>
+			
+			<mkdir dir="${patch.outputDirectory}" />
+			<javac srcdir="patches/@{patch.basename}" includeantruntime="false" destdir="${patch.outputDirectory}">
+				<compilerarg value="--module-path" />
+				<compilerarg value="${project.build.directory}/dependency" />
+				<compilerarg value="--patch-module" />
+				<compilerarg value="@{patch.module}=${toString:patch.jar}" />
+			</javac>
+			<zip update="true" destfile="${toString:patch.jar}" basedir="${patch.outputDirectory}" whenempty="fail">
+				<fileset file="module-info.class" />
+			</zip>
+		</sequential>
+	</macrodef>
+</project>
