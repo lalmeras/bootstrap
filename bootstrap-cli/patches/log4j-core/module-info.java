@@ -1,6 +1,7 @@
 module org.apache.logging.log4j.core {
 	requires java.desktop;
 	requires java.management;
+	requires java.xml;
 	requires org.apache.logging.log4j;
 	
 	uses org.apache.logging.log4j.core.util.ContextDataProvider;
