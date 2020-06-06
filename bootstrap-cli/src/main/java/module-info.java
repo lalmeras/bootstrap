@@ -6,13 +6,15 @@ module org.likide.bootstrap {
 	requires jline.terminal;
 	
 	requires org.slf4j;
-	requires org.apache.logging.log4j;
-	requires org.apache.logging.log4j.core;
 	requires jul.to.slf4j;
 	requires java.logging;
+	
+	requires org.tinylog.api;
+	requires org.tinylog.impl;
+	requires org.tinylog.api.slf4j;
 	
 	exports org.likide.bootstrap;
 	opens org.likide.bootstrap;
 	
-	requires org.apache.logging.log4j.slf4j;
+	provides org.slf4j.spi.SLF4JServiceProvider with org.likide.bootstrap.TinylogSLF4JServiceProvider;
 }

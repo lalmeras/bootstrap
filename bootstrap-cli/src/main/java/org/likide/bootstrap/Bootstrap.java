@@ -4,9 +4,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.Callable;
+import java.util.logging.LogManager;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.core.LoggerContext;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.likide.bootstrap.Constants.SystemProperties;
@@ -27,6 +26,7 @@ public class Bootstrap implements Callable<Integer> {
 
 	static {
 		// configure log4j and slf4j before loading
+		System.out.println(System.currentTimeMillis());
 		System.setProperty(SystemProperties.LOG4J2_DISABLE_JMX, "true");
 		System.setProperty(SystemProperties.LOG4J2_LEVEL, "warn");
 		System.setProperty(SystemProperties.LOG4J2_CONFIG_THROWABLE, "%notEmpty{ -%throwable{short.message}{separator()}}");
@@ -40,9 +40,14 @@ public class Bootstrap implements Callable<Integer> {
 		java.util.logging.Logger.getLogger("org.jline").setLevel(java.util.logging.Level.ALL);
 		SLF4JBridgeHandler.removeHandlersForRootLogger();
 		SLF4JBridgeHandler.install();
+		System.out.println(System.currentTimeMillis());
 	}
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(Bootstrap.class);
+
+	static {
+		System.out.println(System.currentTimeMillis());
+	}
 
 	@Option(
 			names = { "--name", "-n" },
@@ -105,15 +110,20 @@ public class Bootstrap implements Callable<Integer> {
 	)
 	private boolean debug = false;
 
-	private final FileRegistry fileRegistry = new FileRegistry();
+	private final FileRegistry fileRegistry;
 	private final Terminal terminal;
 
 	public static void main(String... args) {
-		int exitCode = new CommandLine(new Bootstrap()).execute(args);
+		System.out.println(System.currentTimeMillis());
+		CommandLine commandLine = new CommandLine(new Bootstrap());
+		System.out.println(System.currentTimeMillis());
+		int exitCode = commandLine.execute(args);
+		System.out.println(System.currentTimeMillis());
 		System.exit(exitCode);
 	}
 
 	public Bootstrap() {
+		System.out.println(System.currentTimeMillis());
 		Terminal temp = null;
 		try {
 			temp = TerminalBuilder.terminal();
@@ -121,10 +131,13 @@ public class Bootstrap implements Callable<Integer> {
 			LOGGER.warn("Failed to initialize jline terminal");
 		}
 		terminal = temp;
+		fileRegistry = new FileRegistry();
+		System.out.println(System.currentTimeMillis());
 	}
 
 	@Override
 	public Integer call() {
+		System.out.println(System.currentTimeMillis());
 		try {
 			return doCall();
 		} catch (DownloadFailureException e) {
@@ -148,10 +161,11 @@ public class Bootstrap implements Callable<Integer> {
 	private Integer doCall() throws DownloadFailureException {
 		reconfigureLogging();
 		computeDefaults();
-		
-		installMiniconda();
-		
 		return 0;
+//		
+//		installMiniconda();
+//		
+//		return 0;
 	}
 
 	private void installMiniconda() throws DownloadFailureException {
@@ -183,7 +197,7 @@ public class Bootstrap implements Callable<Integer> {
 		}
 		LOGGER.warn("{}", terminal.getWidth());
 		
-		((LoggerContext) LogManager.getContext(false)).reconfigure();
+		//((LoggerContext) LogManager.getContext(false)).reconfigure();
 		SLF4JBridgeHandler.removeHandlersForRootLogger();
 		SLF4JBridgeHandler.install();
 	}

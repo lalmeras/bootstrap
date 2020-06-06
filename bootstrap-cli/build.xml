@@ -1,9 +1,9 @@
 <project>
 	<target name="patch-modules" depends="patch-log4j-slf4j" />
 	<target name="patch-log4j-slf4j">
-		<patch-jar patch.basename="log4j-api" patch.module="org.apache.logging.log4j" />
-		<patch-jar patch.basename="log4j-core" patch.module="org.apache.logging.log4j.core" />
-		<patch-jar patch.basename="log4j-slf4j18-impl" patch.module="org.apache.logging.log4j.slf4j" />
+		<patch-jar patch.basename="tinylog-api" patch.module="org.tinylog.api" />
+		<patch-jar patch.basename="tinylog-impl" patch.module="org.tinylog.impl" />
+		<patch-jar patch.basename="slf4j-tinylog" patch.module="org.tinylog.api.slf4j" />
 		<patch-jar patch.basename="jul-to-slf4j" patch.module="jul.to.slf4j" />
 		<patch-jar patch.basename="jline-terminal" patch.module="jline.terminal" />
 	</target>
