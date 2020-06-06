@@ -17,4 +17,6 @@ module org.likide.bootstrap {
 	opens org.likide.bootstrap;
 	
 	provides org.slf4j.spi.SLF4JServiceProvider with org.likide.bootstrap.TinylogSLF4JServiceProvider;
+	provides org.tinylog.provider.LoggingProvider with org.likide.bootstrap.TinylogLoggingProvider;
+	uses org.tinylog.provider.LoggingProvider;
 }

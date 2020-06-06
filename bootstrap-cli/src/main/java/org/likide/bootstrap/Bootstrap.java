@@ -3,6 +3,9 @@ package org.likide.bootstrap;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.ServiceLoader;
 import java.util.concurrent.Callable;
 
 import org.jline.terminal.Terminal;
@@ -11,6 +14,8 @@ import org.likide.bootstrap.Constants.SystemProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.bridge.SLF4JBridgeHandler;
+import org.tinylog.provider.LoggingProvider;
+import org.tinylog.provider.ProviderRegistry;
 
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -24,6 +29,8 @@ import picocli.CommandLine.Option;
 public class Bootstrap implements Callable<Integer> {
 
 	static {
+		System.setProperty(SystemProperties.TINYLOG_LEVEL, "warn");
+		System.setProperty("provider", TinylogLoggingProvider.class.getName());
 		// configure log4j and slf4j before loading
 		System.setProperty(SystemProperties.LOG4J2_DISABLE_JMX, "true");
 		System.setProperty(SystemProperties.LOG4J2_LEVEL, "warn");
@@ -171,19 +178,25 @@ public class Bootstrap implements Callable<Integer> {
 	}
 
 	private void reconfigureLogging() {
+		Map<String, String> properties = new HashMap<String, String>();
 		if (verbose.length > 1) {
 			System.setProperty(SystemProperties.LOG4J2_LEVEL, "trace");
+			properties.put("level@org", "trace");
 		} else if (verbose.length > 0) {
 			System.setProperty(SystemProperties.LOG4J2_LEVEL, "info");
+			properties.put("level@org", "info");
 		}
 		if (debug) {
 			System.setProperty(SystemProperties.LOG4J2_CONFIG_THROWABLE, "%n%throwable");
 		}
 		LOGGER.warn("{}", terminal.getWidth());
 		
-		//((LoggerContext) LogManager.getContext(false)).reconfigure();
-		SLF4JBridgeHandler.removeHandlersForRootLogger();
-		SLF4JBridgeHandler.install();
+		if (!properties.isEmpty()) {
+			((TinylogLoggingProvider) ProviderRegistry.getLoggingProvider()).reload(properties);
+			SLF4JBridgeHandler.removeHandlersForRootLogger();
+			SLF4JBridgeHandler.install();
+		}
+		LOGGER.info("test");
 	}
 
 }
