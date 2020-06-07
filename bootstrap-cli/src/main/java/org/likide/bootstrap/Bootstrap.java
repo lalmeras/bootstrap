@@ -5,17 +5,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.ServiceLoader;
 import java.util.concurrent.Callable;
 
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.likide.bootstrap.Constants.SystemProperties;
+import org.likide.bootstrap.tinylog.TinylogConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.bridge.SLF4JBridgeHandler;
-import org.tinylog.provider.LoggingProvider;
-import org.tinylog.provider.ProviderRegistry;
+import org.tinylog.core.TinylogLoggingProvider;
 
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -188,15 +187,17 @@ public class Bootstrap implements Callable<Integer> {
 		}
 		if (debug) {
 			System.setProperty(SystemProperties.LOG4J2_CONFIG_THROWABLE, "%n%throwable");
+			properties.put("writer.format", "{level}: {class}.{method}()\\t{message}");
 		}
-		LOGGER.warn("{}", terminal.getWidth());
 		
 		if (!properties.isEmpty()) {
-			((TinylogLoggingProvider) ProviderRegistry.getLoggingProvider()).reload(properties);
+			TinylogConfiguration.reconfigure(properties);
 			SLF4JBridgeHandler.removeHandlersForRootLogger();
 			SLF4JBridgeHandler.install();
+			LOGGER.info("Verbosity configuration applied");
 		}
-		LOGGER.info("test");
+		
+		LOGGER.info("Terminal width: {}", terminal.getWidth());
 	}
 
 }

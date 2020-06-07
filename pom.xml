@@ -9,6 +9,7 @@
 
 	<modules>
 		<module>bootstrap-cli</module>
+		<module>bootstrap-tinylog</module>
 		<module>basic-cli</module>
 		<module>slf4j-cli</module>
 		<module>picocli-cli</module>
@@ -116,18 +117,6 @@
 					<artifactId>maven-compiler-plugin</artifactId>
 					<!-- annotationProcessorPaths requires maven-compiler-plugin version 3.5 or higher -->
 					<version>${maven-compiler-plugin.version}</version>
-					<configuration>
-						<annotationProcessorPaths>
-							<path>
-								<groupId>info.picocli</groupId>
-								<artifactId>picocli-codegen</artifactId>
-								<version>${picocli.version}</version>
-							</path>
-						</annotationProcessorPaths>
-						<compilerArgs>
-							<arg>-Aproject=${project.groupId}/${project.artifactId}</arg>
-						</compilerArgs>
-					</configuration>
 				</plugin>
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>

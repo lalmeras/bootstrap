@@ -1,4 +1,4 @@
-package org.likide.bootstrap;
+package org.likide.bootstrap.tinylog;
 
 import java.util.BitSet;
 import java.util.Collection;

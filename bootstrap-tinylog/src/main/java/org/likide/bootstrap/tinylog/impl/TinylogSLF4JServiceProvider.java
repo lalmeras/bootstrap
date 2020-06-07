@@ -1,4 +1,4 @@
-package org.likide.bootstrap;
+package org.likide.bootstrap.tinylog.impl;
 
 import org.slf4j.ILoggerFactory;
 import org.slf4j.IMarkerFactory;
