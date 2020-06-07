@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.likide.bootstrap.tinylog.impl.TinylogConfiguration;
 import org.tinylog.Level;
 import org.tinylog.Supplier;
 import org.tinylog.configuration.Configuration;
@@ -36,6 +37,7 @@ public class TinylogLoggingProvider implements LoggingProvider {
 
 	/** */
 	public TinylogLoggingProvider() {
+		Configuration.replace(TinylogConfiguration.builder().build());
 		context = new TinylogContextProvider();
 		globalLevel = ConfigurationParser.getGlobalLevel();
 		customLevels = ConfigurationParser.getCustomLevels();
@@ -62,8 +64,8 @@ public class TinylogLoggingProvider implements LoggingProvider {
 		}
 	}
 
-	public void reload(Map<String, String> newProperties) {
-		Configuration.replace(newProperties);
+	public void reload(ITinylogConfiguration configuration) {
+		Configuration.replace(configuration.build());
 		globalLevel = ConfigurationParser.getGlobalLevel();
 		customLevels.clear();
 		customLevels.putAll(ConfigurationParser.getCustomLevels());

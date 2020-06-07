@@ -1,5 +1,5 @@
 module org.likide.bootstrap.tinylog {
-	requires org.slf4j;
+	requires transitive org.slf4j;
 	
 	requires org.tinylog.api;
 	requires org.tinylog.impl;

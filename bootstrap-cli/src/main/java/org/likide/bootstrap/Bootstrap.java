@@ -3,18 +3,17 @@ package org.likide.bootstrap;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.Callable;
 
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.likide.bootstrap.Constants.SystemProperties;
-import org.likide.bootstrap.tinylog.TinylogConfiguration;
+import org.likide.bootstrap.tinylog.ITinylogConfiguration;
+import org.likide.bootstrap.tinylog.Tinylog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.bridge.SLF4JBridgeHandler;
-import org.tinylog.core.TinylogLoggingProvider;
+import org.slf4j.event.Level;
 
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -28,8 +27,7 @@ import picocli.CommandLine.Option;
 public class Bootstrap implements Callable<Integer> {
 
 	static {
-		System.setProperty(SystemProperties.TINYLOG_LEVEL, "warn");
-		System.setProperty("provider", TinylogLoggingProvider.class.getName());
+		Tinylog.init();
 		// configure log4j and slf4j before loading
 		System.setProperty(SystemProperties.LOG4J2_DISABLE_JMX, "true");
 		System.setProperty(SystemProperties.LOG4J2_LEVEL, "warn");
@@ -177,25 +175,23 @@ public class Bootstrap implements Callable<Integer> {
 	}
 
 	private void reconfigureLogging() {
-		Map<String, String> properties = new HashMap<String, String>();
+		ITinylogConfiguration configuration = Tinylog.newConfiguration();
 		if (verbose.length > 1) {
 			System.setProperty(SystemProperties.LOG4J2_LEVEL, "trace");
-			properties.put("level@org", "trace");
+			configuration.defaultLevel(Level.TRACE);
 		} else if (verbose.length > 0) {
 			System.setProperty(SystemProperties.LOG4J2_LEVEL, "info");
-			properties.put("level@org", "info");
+			configuration.defaultLevel(Level.INFO);
 		}
 		if (debug) {
 			System.setProperty(SystemProperties.LOG4J2_CONFIG_THROWABLE, "%n%throwable");
-			properties.put("writer.format", "{level}: {class}.{method}()\\t{message}");
+			configuration.includeStacktrace(true);
 		}
 		
-		if (!properties.isEmpty()) {
-			TinylogConfiguration.reconfigure(properties);
-			SLF4JBridgeHandler.removeHandlersForRootLogger();
-			SLF4JBridgeHandler.install();
-			LOGGER.info("Verbosity configuration applied");
-		}
+		Tinylog.reconfigure(configuration);
+		SLF4JBridgeHandler.removeHandlersForRootLogger();
+		SLF4JBridgeHandler.install();
+		LOGGER.info("Verbosity configuration applied");
 		
 		LOGGER.info("Terminal width: {}", terminal.getWidth());
 	}
