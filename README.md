@@ -14,6 +14,6 @@ time ./java-light/bin/java -Xshare:on -XX:SharedArchiveFile=app-cds.jsa -XX:-Use
 ```
 mvn -pl bootstrap-cli clean package -DskipTests \
   && rm -rf java-light/ \
-  && $JAVA_HOME/bin/jlink --no-header-files --no-man-pages --compress=0 --strip-debug --module-path bootstrap-cli/target/bootstrap-cli-0.0.1-SNAPSHOT.jar:bootstrap-cli/target/dependency/ --add-modules org.likide.bootstrap --verbose --output java-light --launcher bootstrap=org.likide.bootstrap/org.likide.bootstrap.Bootstrap --strip-java-debug-attributes --add-options="-XX:-UsePerfData -XX:TieredStopAtLevel=1 -XX:CICompilerCount=1 -XX:+UseSerialGC -Xmx16m" \
+  && $JAVA_HOME/bin/jlink --no-header-files --no-man-pages --compress=0 --strip-debug --module-path bootstrap-cli/target/bootstrap-cli-0.0.1-SNAPSHOT.jar:bootstrap-cli/target/dependency/ --add-modules org.likide.bootstrap,org.likide.bootstrap,org.likide.bootstrap.tinylog --verbose --output java-light --launcher bootstrap=org.likide.bootstrap/org.likide.bootstrap.Bootstrap --strip-java-debug-attributes --add-options="-XX:-UsePerfData -XX:TieredStopAtLevel=1 -XX:CICompilerCount=1 -XX:+UseSerialGC -Xmx16m" \
   && time ./java-light/bin/bootstrap --miniconda-url http://fake
 ```

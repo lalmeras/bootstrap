@@ -1,5 +1,5 @@
 module org.likide.bootstrap {
-	requires org.likide.bootstrap.tinylog;
+	requires org.likide.bootstrap.logging;
 	
 	requires java.net.http;
 	

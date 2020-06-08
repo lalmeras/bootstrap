@@ -4,12 +4,14 @@ import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.likide.bootstrap.tinylog.impl.TinylogConfiguration;
+import org.likide.bootstrap.logging.LoggingConfiguration;
+import org.likide.bootstrap.logging.LoggingManager;
 import org.tinylog.Level;
 import org.tinylog.Supplier;
 import org.tinylog.configuration.Configuration;
@@ -37,7 +39,7 @@ public class TinylogLoggingProvider implements LoggingProvider {
 
 	/** */
 	public TinylogLoggingProvider() {
-		Configuration.replace(TinylogConfiguration.builder().build());
+		Configuration.replace(buildProperties(LoggingManager.getInstance().newConfiguration()));
 		context = new TinylogContextProvider();
 		globalLevel = ConfigurationParser.getGlobalLevel();
 		customLevels = ConfigurationParser.getCustomLevels();
@@ -64,8 +66,8 @@ public class TinylogLoggingProvider implements LoggingProvider {
 		}
 	}
 
-	public void reload(ITinylogConfiguration configuration) {
-		Configuration.replace(configuration.build());
+	public void reload(LoggingConfiguration configuration) {
+		Configuration.replace(buildProperties(configuration));
 		globalLevel = ConfigurationParser.getGlobalLevel();
 		customLevels.clear();
 		customLevels.putAll(ConfigurationParser.getCustomLevels());
@@ -78,6 +80,24 @@ public class TinylogLoggingProvider implements LoggingProvider {
 		writers = ConfigurationParser.createWriters(knownTags, minimumLevel, hasWritingThread);
 		requiredLogEntryValues = calculateRequiredLogEntryValues(writers);
 		fullStackTraceRequired = calculateFullStackTraceRequirements(requiredLogEntryValues);
+	}
+
+	public Map<String, String> buildProperties(LoggingConfiguration configuration) {
+		Map<String, String> properties = new HashMap<>();
+		properties.put("writer", "console");
+		if (configuration.isIncludeStacktrace()) {
+			properties.put("writer.format", "{level}: {class}.{method}()\t{message}");
+		} else {
+			properties.put("writer.format", "{level}: {class}.{method}()\t{message-only}");
+		}
+		properties.put("writer.level", "trace");
+		properties.put("level", "trace");
+		if (configuration.getDefaultLevel() == null) {
+			properties.put("level@org", System.getProperty("logging.level", "warn"));
+		} else {
+			properties.put("level@org", configuration.getDefaultLevel().toString());
+		}
+		return properties;
 	}
 
 	@Override

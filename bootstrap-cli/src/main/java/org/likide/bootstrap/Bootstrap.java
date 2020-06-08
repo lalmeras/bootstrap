@@ -8,8 +8,8 @@ import java.util.concurrent.Callable;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.likide.bootstrap.Constants.SystemProperties;
-import org.likide.bootstrap.tinylog.ITinylogConfiguration;
-import org.likide.bootstrap.tinylog.Tinylog;
+import org.likide.bootstrap.logging.LoggingConfiguration;
+import org.likide.bootstrap.logging.LoggingManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.bridge.SLF4JBridgeHandler;
@@ -26,8 +26,10 @@ import picocli.CommandLine.Option;
 )
 public class Bootstrap implements Callable<Integer> {
 
+	public static final LoggingManager LOGGING_MANAGER = LoggingManager.getInstance();
+
 	static {
-		Tinylog.init();
+		LOGGING_MANAGER.init();
 		// configure log4j and slf4j before loading
 		System.setProperty(SystemProperties.LOG4J2_DISABLE_JMX, "true");
 		System.setProperty(SystemProperties.LOG4J2_LEVEL, "warn");
@@ -175,7 +177,7 @@ public class Bootstrap implements Callable<Integer> {
 	}
 
 	private void reconfigureLogging() {
-		ITinylogConfiguration configuration = Tinylog.newConfiguration();
+		LoggingConfiguration configuration = LOGGING_MANAGER.newConfiguration();
 		if (verbose.length > 1) {
 			System.setProperty(SystemProperties.LOG4J2_LEVEL, "trace");
 			configuration.defaultLevel(Level.TRACE);
@@ -188,7 +190,7 @@ public class Bootstrap implements Callable<Integer> {
 			configuration.includeStacktrace(true);
 		}
 		
-		Tinylog.reconfigure(configuration);
+		LOGGING_MANAGER.reconfigure(configuration);
 		SLF4JBridgeHandler.removeHandlersForRootLogger();
 		SLF4JBridgeHandler.install();
 		LOGGER.info("Verbosity configuration applied");

@@ -10,6 +10,7 @@
 	<modules>
 		<module>bootstrap-cli</module>
 		<module>bootstrap-tinylog</module>
+		<module>bootstrap-logging</module>
 		<module>basic-cli</module>
 		<module>slf4j-cli</module>
 		<module>picocli-cli</module>

@@ -1,22 +1,23 @@
 package org.likide.bootstrap.tinylog;
 
-import org.likide.bootstrap.tinylog.impl.TinylogConfiguration;
+import org.likide.bootstrap.logging.LoggingConfiguration;
+import org.likide.bootstrap.logging.LoggingManager;
 import org.tinylog.provider.ProviderRegistry;
 
-public class Tinylog {
+public class Tinylog implements LoggingManager {
 
-	private Tinylog() {}
+	public Tinylog() {
+		super();
+	}
 
-	public static void init() {
+	@Override
+	public void init() {
 		System.setProperty("tinylog.provider", TinylogLoggingProvider.class.getName());
 	}
 
-	public static void reconfigure(ITinylogConfiguration configuration) {
+	@Override
+	public void reconfigure(LoggingConfiguration configuration) {
 		((TinylogLoggingProvider) ProviderRegistry.getLoggingProvider()).reload(configuration);
-	}
-
-	public static ITinylogConfiguration newConfiguration() {
-		return TinylogConfiguration.builder();
 	}
 
 }
