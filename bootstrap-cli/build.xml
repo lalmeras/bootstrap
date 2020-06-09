@@ -1,47 +1,45 @@
-<project>
+<project xmlns:if="ant:if" xmlns:unless="ant:unless">
 	<target name="patch-modules" depends="patch-log4j-slf4j" />
 	<target name="patch-log4j-slf4j">
-<!-- 		<patch-jar patch.basename="tinylog-api" patch.module="org.tinylog.api" /> -->
-<!-- 		<patch-jar patch.basename="tinylog-impl" patch.module="org.tinylog.impl" /> -->
-<!-- 		<patch-jar patch.basename="slf4j-tinylog" patch.module="org.tinylog.api.slf4j" /> -->
+		<patch-jar patch.groupId="org.tinylog" patch.artifactId="tinylog-api" patch.module="org.tinylog.api" />
+		<patch-jar patch.groupId="org.tinylog" patch.artifactId="tinylog-impl" patch.module="org.tinylog.impl" />
+		<patch-jar patch.groupId="org.tinylog" patch.artifactId="slf4j-tinylog" patch.module="org.tinylog.api.slf4j" />
 		
-		<patch-jar patch.basename="log4j-api" patch.module="org.apache.logging.log4j" />
-		<patch-jar patch.basename="log4j-core" patch.module="org.apache.logging.log4j.core" />
-		<patch-jar patch.basename="log4j-slf4j18-impl" patch.module="org.apache.logging.log4j.slf4j" />
+		<patch-jar patch.groupId="org.apache.logging.log4j" patch.artifactId="log4j-core" patch.module="org.apache.logging.log4j.core" />
+		<patch-jar patch.groupId="org.apache.logging.log4j" patch.artifactId="log4j-slf4j18-impl" patch.module="org.apache.logging.log4j.slf4j" />
 		
-		<patch-jar patch.basename="jul-to-slf4j" patch.module="jul.to.slf4j" />
-		<patch-jar patch.basename="jline-terminal" patch.module="jline.terminal" />
+		<patch-jar patch.groupId="org.slf4j" patch.artifactId="jul-to-slf4j" patch.module="jul.to.slf4j" />
+		<patch-jar patch.groupId="org.jline" patch.artifactId="jline-terminal" patch.module="jline.terminal" />
 	</target>
 	<macrodef name="patch-jar">
-		<attribute name="patch.basename" />
+		<attribute name="patch.groupId" />
+		<attribute name="patch.artifactId" />
 		<attribute name="patch.module" />
 		<sequential>
-			<local name="patch.outputDirectory" />
-			<property name="patch.outputDirectory" value="${project.build.directory}/patches/@{patch.basename}" />
-			
-			<first id="patch.jar">
-				<fileset id="patch.jars" dir="${project.build.directory}/dependency">
-					<filename regex="@{patch.basename}-[0-9].*.jar" />
-				</fileset>
-			</first>
-			<fail message="@{patch.basename} jar not found">
-				<condition>
-					<not>
-						<resourcecount count="1" refid="patch.jars" property="test" />
-					</not>
-				</condition>
-			</fail>
-			
-			<mkdir dir="${patch.outputDirectory}" />
-			<javac srcdir="patches/@{patch.basename}" includeantruntime="false" destdir="${patch.outputDirectory}">
-				<compilerarg value="--module-path" />
-				<compilerarg value="${project.build.directory}/dependency" />
-				<compilerarg value="--patch-module" />
-				<compilerarg value="@{patch.module}=${toString:patch.jar}" />
-			</javac>
-			<zip update="true" destfile="${toString:patch.jar}" basedir="${patch.outputDirectory}" whenempty="fail">
-				<fileset file="module-info.class" />
-			</zip>
+			<sequential if:set="@{patch.groupId}:@{patch.artifactId}:jar">
+				<local name="patch.outputDirectory" />
+				<local name="patch.classesOutputDirectory" />
+				<local name="patch.jar.filename" />
+				<local name="patch.source" />
+				<local name="patch.jar" />
+				<property name="patch.classesOutputDirectory" value="${project.build.directory}/patches-classes/@{patch.artifactId}" />
+				<property name="patch.outputDirectory" value="${project.build.directory}/dependency" />
+				<property name="patch.source" value="${@{patch.groupId}:@{patch.artifactId}:jar}" />
+				<basename property="patch.jar.filename" file="${patch.source}" />
+				<property name="patch.jar" value="${patch.outputDirectory}/${patch.jar.filename}" />
+				
+				<mkdir dir="${patch.classesOutputDirectory}" />
+				<mkdir dir="${patch.outputDirectory}" />
+				<javac srcdir="patches/@{patch.artifactId}" includeantruntime="false" destdir="${patch.classesOutputDirectory}">
+					<compilerarg value="--module-path" />
+					<compilerarg value="${project.build.directory}/dependency" />
+					<compilerarg value="--patch-module" />
+					<compilerarg value="@{patch.module}=${patch.jar}" />
+				</javac>
+				<zip update="true" destfile="${patch.jar}" basedir="${patch.classesOutputDirectory}" whenempty="fail">
+					<fileset file="module-info.class" />
+				</zip>
+			</sequential>
 		</sequential>
 	</macrodef>
 </project>

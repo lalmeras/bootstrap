@@ -14,8 +14,30 @@
 		<bootstrap.imageName>bootstrap</bootstrap.imageName>
 	</properties>
 	
+	<profiles>
+		<profile>
+			<id>logging-tinylog</id>
+			<dependencies>
+				<dependency>
+					<groupId>org.likide.bootstrap</groupId>
+					<artifactId>bootstrap-tinylog</artifactId>
+					<version>${project.version}</version>
+				</dependency>
+			</dependencies>
+		</profile>
+		<profile>
+			<id>logging-log4j2</id>
+			<dependencies>
+				<dependency>
+					<groupId>org.likide.bootstrap</groupId>
+					<artifactId>bootstrap-log4j2</artifactId>
+					<version>${project.version}</version>
+				</dependency>
+			</dependencies>
+		</profile>
+	</profiles>
+	
 	<dependencies>
-		
 		<dependency>
 			<groupId>info.picocli</groupId>
 			<artifactId>picocli</artifactId>
@@ -34,16 +56,9 @@
 			<groupId>org.slf4j</groupId>
 			<artifactId>jul-to-slf4j</artifactId>
 		</dependency>
-		
-<!-- 		<dependency> -->
-<!-- 			<groupId>org.likide.bootstrap</groupId> -->
-<!-- 			<artifactId>bootstrap-tinylog</artifactId> -->
-<!-- 			<version>${project.version}</version> -->
-<!-- 		</dependency> -->
-
 		<dependency>
 			<groupId>org.likide.bootstrap</groupId>
-			<artifactId>bootstrap-log4j2</artifactId>
+			<artifactId>bootstrap-logging</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 
