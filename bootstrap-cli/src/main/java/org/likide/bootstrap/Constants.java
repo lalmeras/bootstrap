@@ -7,12 +7,4 @@ public final class Constants {
 		public static final String MINICONDA3_URL = "https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh";
 	};
 
-	public static final class SystemProperties {
-
-		static final String LOG4J2_LEVEL = "log4j2.level";
-		static final String TINYLOG_LEVEL = "tinylog.override.level";
-		static final String LOG4J2_DISABLE_JMX = "log4j2.disable.jmx";
-		static final String LOG4J2_CONFIG_THROWABLE = "log4j2.config.throwable";
-	};
-
 }

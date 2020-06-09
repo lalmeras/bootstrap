@@ -7,7 +7,6 @@ import java.util.concurrent.Callable;
 
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
-import org.likide.bootstrap.Constants.SystemProperties;
 import org.likide.bootstrap.logging.LoggingConfiguration;
 import org.likide.bootstrap.logging.LoggingManager;
 import org.slf4j.Logger;
@@ -31,10 +30,6 @@ public class Bootstrap implements Callable<Integer> {
 	static {
 		LOGGING_MANAGER.init();
 		// configure log4j and slf4j before loading
-		System.setProperty(SystemProperties.LOG4J2_DISABLE_JMX, "true");
-		System.setProperty(SystemProperties.LOG4J2_LEVEL, "warn");
-		System.setProperty(SystemProperties.LOG4J2_CONFIG_THROWABLE, "%notEmpty{ -%throwable{short.message}{separator()}}");
-		
 		// configure jline
 		System.setProperty("org.jline.terminal.exec", "true");
 		System.setProperty("org.jline.terminal.jna", "true");
@@ -179,14 +174,11 @@ public class Bootstrap implements Callable<Integer> {
 	private void reconfigureLogging() {
 		LoggingConfiguration configuration = LOGGING_MANAGER.newConfiguration();
 		if (verbose.length > 1) {
-			System.setProperty(SystemProperties.LOG4J2_LEVEL, "trace");
 			configuration.defaultLevel(Level.TRACE);
 		} else if (verbose.length > 0) {
-			System.setProperty(SystemProperties.LOG4J2_LEVEL, "info");
 			configuration.defaultLevel(Level.INFO);
 		}
 		if (debug) {
-			System.setProperty(SystemProperties.LOG4J2_CONFIG_THROWABLE, "%n%throwable");
 			configuration.includeStacktrace(true);
 		}
 		
