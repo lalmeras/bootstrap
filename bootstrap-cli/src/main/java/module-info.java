@@ -1,10 +1,9 @@
 module org.likide.bootstrap {
-	requires org.likide.bootstrap.logging;
-	
 	requires java.net.http;
 	
-	requires info.picocli;
+	requires org.likide.bootstrap.logging;
 	
+	requires info.picocli;
 	requires jline.terminal;
 	
 	requires org.slf4j;
@@ -12,5 +11,6 @@ module org.likide.bootstrap {
 	requires java.logging;
 	
 	exports org.likide.bootstrap;
+	opens org.likide.bootstrap.picocli to info.picocli;
 	opens org.likide.bootstrap;
 }

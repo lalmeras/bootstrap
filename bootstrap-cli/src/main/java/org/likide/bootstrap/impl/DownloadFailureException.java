@@ -1,4 +1,4 @@
-package org.likide.bootstrap;
+package org.likide.bootstrap.impl;
 
 public class DownloadFailureException extends Exception {
 

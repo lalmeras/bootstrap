@@ -4,7 +4,7 @@ import java.nio.file.Paths;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.likide.bootstrap.DefaultProvider;
+import org.likide.bootstrap.picocli.DefaultProvider;
 
 public class TestPath {
 

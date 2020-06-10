@@ -1,4 +1,4 @@
-package org.likide.bootstrap;
+package org.likide.bootstrap.picocli;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -10,9 +10,12 @@ import picocli.CommandLine.IDefaultValueProvider;
 import picocli.CommandLine.Model.ArgSpec;
 import picocli.CommandLine.Model.OptionSpec;
 
+/**
+ * Module: this must be accessible by picocli class loader.
+ */
 public class DefaultProvider implements IDefaultValueProvider {
 
-	public static final Logger LOGGER = LoggerFactory.getLogger(DefaultProvider.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(DefaultProvider.class);
 
 	@Override
 	public String defaultValue(ArgSpec argSpec) throws Exception {

@@ -1,4 +1,4 @@
-package org.likide.bootstrap;
+package org.likide.bootstrap.impl;
 
 import java.util.ArrayList;
 import java.util.Collections;

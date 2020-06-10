@@ -1,9 +1,9 @@
-package org.likide.bootstrap;
+package org.likide.bootstrap.impl;
 
 public enum MinicondaVersion {
 
-	_2("2"),
-	_3("3");
+	V2("2"),
+	V3("3");
 
 	private final String name;
 

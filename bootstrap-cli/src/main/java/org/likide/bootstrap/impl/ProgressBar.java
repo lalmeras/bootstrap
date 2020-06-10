@@ -1,4 +1,4 @@
-package org.likide.bootstrap;
+package org.likide.bootstrap.impl;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;

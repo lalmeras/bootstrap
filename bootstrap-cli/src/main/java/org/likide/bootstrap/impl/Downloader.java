@@ -1,4 +1,4 @@
-package org.likide.bootstrap;
+package org.likide.bootstrap.impl;
 
 import java.io.IOException;
 import java.net.URI;
@@ -19,7 +19,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Flow;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
-import java.util.function.Consumer;
+import java.util.function.LongConsumer;
 
 import org.jline.terminal.Terminal;
 import org.slf4j.Logger;
@@ -27,9 +27,11 @@ import org.slf4j.LoggerFactory;
 
 public class Downloader {
 	
-	private static final Logger LOGGER = LoggerFactory.getLogger(Bootstrap.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(Downloader.class);
 	
-	static Path download(String url, Terminal terminal) throws DownloadFailureException {
+	private Downloader() {}
+	
+	public static Path download(String url, Terminal terminal) throws DownloadFailureException {
 		HttpClient client = HttpClient.newBuilder().followRedirects(Redirect.NORMAL).build();
 		HttpRequest request = HttpRequest.newBuilder()
 				.GET()
@@ -64,7 +66,7 @@ public class Downloader {
 			ProgressBar progressBar = new ProgressBar(terminal, contentLength, Long::sum).start();
 			
 			// wait for download completion
-			bodyPublisher.subscribe(new ProgressDelegateSubscriber(fileSubscriber, progressBar));
+			bodyPublisher.subscribe(new ProgressDelegateSubscriber(fileSubscriber, progressBar::tick));
 			CompletableFuture<Path> future = fileSubscriber.getBody().toCompletableFuture();
 			future.get();
 			
@@ -102,9 +104,9 @@ public class Downloader {
 	public static class ProgressDelegateSubscriber implements Subscriber<List<ByteBuffer>> {
 
 		private final Subscriber<List<ByteBuffer>> delegate;
-		private final Consumer<Long> counter;
+		private final LongConsumer counter;
 		
-		public ProgressDelegateSubscriber(Subscriber<List<ByteBuffer>> delegate, Consumer<Long> counter) {
+		public ProgressDelegateSubscriber(Subscriber<List<ByteBuffer>> delegate, LongConsumer counter) {
 			this.delegate = delegate;
 			this.counter = counter;
 		}

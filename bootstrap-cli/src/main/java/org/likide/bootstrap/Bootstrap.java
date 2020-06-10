@@ -7,8 +7,15 @@ import java.util.concurrent.Callable;
 
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.likide.bootstrap.impl.Constants;
+import org.likide.bootstrap.impl.DownloadFailureException;
+import org.likide.bootstrap.impl.Downloader;
+import org.likide.bootstrap.impl.FileItem;
+import org.likide.bootstrap.impl.FileRegistry;
+import org.likide.bootstrap.impl.MinicondaVersion;
 import org.likide.bootstrap.logging.LoggingConfiguration;
 import org.likide.bootstrap.logging.LoggingManager;
+import org.likide.bootstrap.picocli.DefaultProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.bridge.SLF4JBridgeHandler;
@@ -25,7 +32,7 @@ import picocli.CommandLine.Option;
 )
 public class Bootstrap implements Callable<Integer> {
 
-	public static final LoggingManager LOGGING_MANAGER = LoggingManager.getInstance();
+	private static final LoggingManager LOGGING_MANAGER = LoggingManager.getInstance();
 
 	static {
 		LOGGING_MANAGER.init();
@@ -104,8 +111,8 @@ public class Bootstrap implements Callable<Integer> {
 	)
 	private boolean debug = false;
 
-	private final FileRegistry fileRegistry;
-	private final Terminal terminal;
+	private FileRegistry fileRegistry;
+	private Terminal terminal;
 
 	public static void main(String... args) {
 		CommandLine commandLine = new CommandLine(new Bootstrap());
@@ -114,6 +121,31 @@ public class Bootstrap implements Callable<Integer> {
 	}
 
 	public Bootstrap() {
+		super();
+	}
+
+	/**
+	 * Perform initialization and catch-finally handling, wrapping {@link Bootstrap#doCall()}
+	 */
+	@Override
+	public Integer call() {
+		try {
+			init();
+			reconfigureLogging();
+			computeDefaults();
+			return doCall();
+		} catch (DownloadFailureException e) {
+			LOGGER.error("Fatal error", e);
+			return 1;
+		} finally {
+			cleanFiles();
+		}
+	}
+
+	/**
+	 * Initiate file registry and terminal handling.
+	 */
+	private void init() {
 		Terminal temp = null;
 		try {
 			temp = TerminalBuilder.terminal();
@@ -124,46 +156,48 @@ public class Bootstrap implements Callable<Integer> {
 		fileRegistry = new FileRegistry();
 	}
 
-	@Override
-	public Integer call() {
-		try {
-			return doCall();
-		} catch (DownloadFailureException e) {
-			LOGGER.error("Fatal error", e);
-			return 1;
-		} finally {
-			for (FileItem item : fileRegistry.getFiles()) {
-				try {
-					if (!Files.deleteIfExists(item.getPath())) {
-						LOGGER.warn("Temporary file cannot be cleaned: {}", item.getPath());
-					} else {
-						LOGGER.info("Temporary file removed: {}", item.getPath());
-					}
-				} catch (IOException | RuntimeException e) {
-					LOGGER.warn("Temporary file cannot be cleaned: {}", item.getPath(), e);
+	/**
+	 * File cleanup processing. Errors during cleanup are logged.
+	 */
+	private void cleanFiles() {
+		for (FileItem item : fileRegistry.getFiles()) {
+			try {
+				if (!Files.deleteIfExists(item.getPath())) {
+					LOGGER.warn("Temporary file cannot be cleaned: {}", item.getPath());
+				} else {
+					LOGGER.info("Temporary file removed: {}", item.getPath());
 				}
+			} catch (IOException | RuntimeException e) {
+				LOGGER.warn("Temporary file cannot be cleaned: {}", item.getPath(), e);
 			}
 		}
 	}
 
+	/**
+	 * Perform effective stuff.
+	 */
 	private Integer doCall() throws DownloadFailureException {
-		reconfigureLogging();
-		computeDefaults();
 		installMiniconda();
 		return 0;
 	}
 
+	/**
+	 * Miniconda installation (download then execute).
+	 */
 	private void installMiniconda() throws DownloadFailureException {
 		LOGGER.info("Download miniconda installer ({})", minicondaUrl);
 		Path minicondaInstaller = Downloader.download(minicondaUrl, terminal);
 		fileRegistry.addFile(new FileItem(minicondaInstaller));
 	}
 
+	/**
+	 * Compute dynamic defaults, as miniconda URL based on the miniconda version.
+	 */
 	private void computeDefaults() {
 		if (minicondaUrl == null) {
 			switch (minicondaVersion) {
-			case _2: minicondaUrl = Constants.DEFAULTS.MINICONDA2_URL; break;
-			case _3: minicondaUrl = Constants.DEFAULTS.MINICONDA2_URL; break;
+			case V2: minicondaUrl = Constants.DEFAULTS.MINICONDA2_URL; break;
+			case V3: minicondaUrl = Constants.DEFAULTS.MINICONDA2_URL; break;
 			default:
 				throw new IllegalStateException(String.format("No miniconda download URL for version %s", minicondaVersion));
 			}
@@ -171,6 +205,9 @@ public class Bootstrap implements Callable<Integer> {
 		}
 	}
 
+	/**
+	 * Reload logging framework configuration based on verbosity and debugging cli parameters.
+	 */
 	private void reconfigureLogging() {
 		LoggingConfiguration configuration = LOGGING_MANAGER.newConfiguration();
 		if (verbose.length > 1) {
