@@ -15,6 +15,7 @@
 		<module>basic-cli</module>
 		<module>slf4j-cli</module>
 		<module>picocli-cli</module>
+		<module>bootstrap-tasking</module>
 	</modules>
 
 	<properties>
@@ -101,11 +102,29 @@
 					</exclusion>
 				</exclusions>
 			</dependency>
+			
+			<dependency>
+				<groupId>com.google.guava</groupId>
+				<artifactId>guava</artifactId>
+				<version>29.0-jre</version>
+			</dependency>
 
 			<dependency>
 				<groupId>org.junit.jupiter</groupId>
 				<artifactId>junit-jupiter</artifactId>
 				<version>${junit.jupiter.version}</version>
+				<scope>test</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.mockito</groupId>
+				<artifactId>mockito-core</artifactId>
+				<version>3.3.3</version>
+				<scope>test</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.assertj</groupId>
+				<artifactId>assertj-core</artifactId>
+				<version>3.16.1</version>
 				<scope>test</scope>
 			</dependency>
 		</dependencies>
