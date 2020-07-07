@@ -27,7 +27,7 @@ import com.google.common.base.Suppliers;
 public class TestStage {
 
 	@SuppressWarnings("unchecked")
-	private Supplier<IStageListener<Payload>> listener = Suppliers.memoize(() -> mock(IStageListener.class));
+	private Supplier<IStageListener<Object>> listener = Suppliers.memoize(() -> mock(IStageListener.class));
 	@SuppressWarnings("unchecked")
 	private Supplier<UnaryOperator<IStageControl<Payload>>> handler = Suppliers.memoize(() -> mock(UnaryOperator.class));
 	@SuppressWarnings("unchecked")

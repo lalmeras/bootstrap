@@ -12,27 +12,27 @@ package org.likide.bootstrap.tasking;
  * }
  * </pre>
  *
- * @param <T> Stage payload's type
+ * @param <T> Stage payload's type or supertype
  */
 public interface IStageListener<T> {
 
-	void onBegin(Stage stage, IStageControl<T> control);
+	void onBegin(Stage<? extends T> stage, IStageControl<? extends T> control);
 
-	void onBeforeExecute(Stage stage, IStageControl<T> control);
+	void onBeforeExecute(Stage<? extends T> stage, IStageControl<? extends T> control);
 
-	void onAfterExecute(Stage stage, IStageControl<T> control);
+	void onAfterExecute(Stage<? extends T> stage, IStageControl<? extends T> control);
 
-	void onBeforeExceptionHandling(Stage stage, IStageControl<T> control);
+	void onBeforeExceptionHandling(Stage<? extends T> stage, IStageControl<? extends T> control);
 
-	void onAfterExceptionHandling(Stage stage, IStageControl<T> control);
+	void onAfterExceptionHandling(Stage<? extends T> stage, IStageControl<? extends T> control);
 
-	void onEnd(Stage stage, IStageControl<T> control);
+	void onEnd(Stage<? extends T> stage, IStageControl<? extends T> control);
 
-	void onSkip(Stage stage, IStageControl<T> control);
+	void onSkip(Stage<? extends T> stage, IStageControl<? extends T> control);
 
-	void onContinue(Stage stage, IStageControl<T> control);
+	void onContinue(Stage<? extends T> stage, IStageControl<? extends T> control);
 
-	void onExit(Stage stage, IStageControl<T> control);
+	void onExit(Stage<? extends T> stage, IStageControl<? extends T> control);
 
-	void onBreak(Stage stage, IStageControl<T> control);
+	void onBreak(Stage<? extends T> stage, IStageControl<? extends T> control);
 }

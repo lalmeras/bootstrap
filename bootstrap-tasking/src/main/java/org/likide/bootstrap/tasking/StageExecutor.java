@@ -5,7 +5,7 @@ import java.util.Arrays;
 public class StageExecutor implements IStageExecutor {
 
 	@Override
-	public <T> void execute(Stage<T> stage, StageControl<T> control, IStageListener<T> listener) {
+	public <T> void execute(Stage<T> stage, StageControl<T> control, IStageListener<? super T> listener) {
 		listener.onBegin(stage, control);
 		if (stage.getCondition() == null || stage.getCondition().test(control.getPayload())) {
 			control.preventSkip();
@@ -43,7 +43,7 @@ public class StageExecutor implements IStageExecutor {
 		}
 	}
 
-	private <T> void handleException(Stage<T> stage, StageControl<T> control, RuntimeException e, IStageListener<T> listener) {
+	private <T> void handleException(Stage<T> stage, StageControl<T> control, RuntimeException e, IStageListener<? super T> listener) {
 		if (stage.getExceptionHandler() == null) {
 			control.doExit();
 			return;
