@@ -20,6 +20,7 @@ import org.likide.bootstrap.tasking.StageBehavior;
 import org.likide.bootstrap.tasking.StageControl;
 import org.likide.bootstrap.tasking.StageExecutor;
 import org.mockito.AdditionalAnswers;
+import org.mockito.Mockito;
 
 import com.google.common.base.Suppliers;
 
@@ -42,6 +43,12 @@ public class TestStage {
 		new StageExecutor().execute(stage, control, listener.get());
 		
 		verify(handler.get()).apply(control);
+		verify(listener.get()).onBegin(stage, control);
+		verify(listener.get()).onBeforeExecute(stage, control);
+		verify(listener.get()).onAfterExecute(stage, control);
+		verify(listener.get()).onEnd(stage, control);
+		verify(listener.get()).onContinue(stage, control);
+		Mockito.verifyNoMoreInteractions(listener.get());
 	}
 
 	@Test
@@ -61,6 +68,13 @@ public class TestStage {
 			.as("check throwable").isInstanceOf(CustomException.class);
 		Assertions.assertThat(control.getBehavior())
 			.as("check throwable").isEqualTo(StageBehavior.EXIT);
+		verify(listener.get()).onBegin(stage, control);
+		verify(listener.get()).onBeforeExecute(stage, control);
+		verify(listener.get()).onBeforeExceptionHandling(stage, control);
+		verify(listener.get()).onAfterExceptionHandling(stage, control);
+		verify(listener.get()).onEnd(stage, control);
+		verify(listener.get()).onExit(stage, control);
+		Mockito.verifyNoMoreInteractions(listener.get());
 	}
 
 	@Test
@@ -86,6 +100,13 @@ public class TestStage {
 			.as("check wrapped").isInstanceOf(CustomException.class);
 		Assertions.assertThat(control.getBehavior())
 			.as("check throwable").isEqualTo(StageBehavior.CONTINUE);
+		verify(listener.get()).onBegin(stage, control);
+		verify(listener.get()).onBeforeExecute(stage, control);
+		verify(listener.get()).onBeforeExceptionHandling(stage, control);
+		verify(listener.get()).onAfterExceptionHandling(stage, control);
+		verify(listener.get()).onEnd(stage, control);
+		verify(listener.get()).onContinue(stage, control);
+		Mockito.verifyNoMoreInteractions(listener.get());
 	}
 
 	@Test
