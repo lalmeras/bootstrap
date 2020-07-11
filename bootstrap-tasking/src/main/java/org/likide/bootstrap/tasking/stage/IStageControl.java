@@ -1,4 +1,4 @@
-package org.likide.bootstrap.tasking;
+package org.likide.bootstrap.tasking.stage;
 
 public interface IStageControl<P> {
 
@@ -9,5 +9,7 @@ public interface IStageControl<P> {
 	void doExit();
 
 	P getPayload();
+
+	Throwable getThrowable();
 
 }

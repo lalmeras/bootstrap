@@ -1,26 +1,26 @@
 package test;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.likide.bootstrap.tasking.IStageControl;
-import org.likide.bootstrap.tasking.IStageListener;
-import org.likide.bootstrap.tasking.Stage;
-import org.likide.bootstrap.tasking.StageBehavior;
-import org.likide.bootstrap.tasking.StageControl;
-import org.likide.bootstrap.tasking.StageExecutor;
+import org.likide.bootstrap.tasking.stage.IStageControl;
+import org.likide.bootstrap.tasking.stage.IStageListener;
+import org.likide.bootstrap.tasking.stage.Stage;
+import org.likide.bootstrap.tasking.stage.StageBehavior;
+import org.likide.bootstrap.tasking.stage.StageControl;
+import org.likide.bootstrap.tasking.stage.StageExecutor;
 import org.mockito.AdditionalAnswers;
-import org.mockito.Mockito;
 
 import com.google.common.base.Suppliers;
 
@@ -48,7 +48,7 @@ public class TestStage {
 		verify(listener.get()).onAfterExecute(stage, control);
 		verify(listener.get()).onEnd(stage, control);
 		verify(listener.get()).onContinue(stage, control);
-		Mockito.verifyNoMoreInteractions(listener.get());
+		verifyNoMoreInteractions(listener.get());
 	}
 
 	@Test
@@ -64,9 +64,9 @@ public class TestStage {
 		new StageExecutor().execute(stage, control, listener.get());
 		
 		// assertions
-		Assertions.assertThat(control.getThrowable())
+		assertThat(control.getThrowable())
 			.as("check throwable").isInstanceOf(CustomException.class);
-		Assertions.assertThat(control.getBehavior())
+		assertThat(control.getBehavior())
 			.as("check throwable").isEqualTo(StageBehavior.EXIT);
 		verify(listener.get()).onBegin(stage, control);
 		verify(listener.get()).onBeforeExecute(stage, control);
@@ -74,7 +74,7 @@ public class TestStage {
 		verify(listener.get()).onAfterExceptionHandling(stage, control);
 		verify(listener.get()).onEnd(stage, control);
 		verify(listener.get()).onExit(stage, control);
-		Mockito.verifyNoMoreInteractions(listener.get());
+		verifyNoMoreInteractions(listener.get());
 	}
 
 	@Test
@@ -96,9 +96,9 @@ public class TestStage {
 		
 		// assertions
 		verify(exceptionHandler.get()).accept(any(CustomException.class), eq(control));
-		Assertions.assertThat(control.getThrowable())
+		assertThat(control.getThrowable())
 			.as("check wrapped").isInstanceOf(CustomException.class);
-		Assertions.assertThat(control.getBehavior())
+		assertThat(control.getBehavior())
 			.as("check throwable").isEqualTo(StageBehavior.CONTINUE);
 		verify(listener.get()).onBegin(stage, control);
 		verify(listener.get()).onBeforeExecute(stage, control);
@@ -106,7 +106,7 @@ public class TestStage {
 		verify(listener.get()).onAfterExceptionHandling(stage, control);
 		verify(listener.get()).onEnd(stage, control);
 		verify(listener.get()).onContinue(stage, control);
-		Mockito.verifyNoMoreInteractions(listener.get());
+		verifyNoMoreInteractions(listener.get());
 	}
 
 	@Test

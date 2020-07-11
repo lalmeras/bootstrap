@@ -1,4 +1,4 @@
-package org.likide.bootstrap.tasking;
+package org.likide.bootstrap.tasking.stage;
 
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
@@ -6,7 +6,11 @@ import java.util.function.UnaryOperator;
 
 public class Stage<T> implements IStage<T> {
 
+	private String shortName;
+
 	private String description;
+
+	private String loggerName = "DEBUG";
 
 	private Predicate<T> condition;
 
@@ -21,8 +25,20 @@ public class Stage<T> implements IStage<T> {
 	private StageFork<T> fork = new StageFork<>(this);
 
 	@Override
+	public IStage<T> shortName(String shortName) {
+		this.shortName = shortName;
+		return this;
+	}
+
+	@Override
 	public IStage<T> description(String description) {
 		this.description = description;
+		return this;
+	}
+
+	@Override
+	public IStage<T> loggerName(String loggerName) {
+		this.loggerName = loggerName;
 		return this;
 	}
 
@@ -96,8 +112,16 @@ public class Stage<T> implements IStage<T> {
 		return fork;
 	}
 
+	public String getShortName() {
+		return shortName;
+	}
+
 	public String getDescription() {
 		return description;
+	}
+
+	public String getLoggerName() {
+		return loggerName;
 	}
 
 }

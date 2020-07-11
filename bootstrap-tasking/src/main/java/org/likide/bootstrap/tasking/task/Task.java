@@ -1,7 +1,9 @@
-package org.likide.bootstrap.tasking;
+package org.likide.bootstrap.tasking.task;
 
 import java.util.List;
 import java.util.function.Predicate;
+
+import org.likide.bootstrap.tasking.stage.Stage;
 
 public class Task<T> {
 

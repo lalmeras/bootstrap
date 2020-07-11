@@ -1,4 +1,4 @@
-package org.likide.bootstrap.tasking;
+package org.likide.bootstrap.tasking.stage;
 
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
@@ -6,7 +6,11 @@ import java.util.function.UnaryOperator;
 
 public interface IStage<T> {
 
+	IStage<T> shortName(String shortName);
+
 	IStage<T> description(String description);
+
+	IStage<T> loggerName(String loggerName);
 
 	IStage<T> condition(Predicate<T> condition);
 

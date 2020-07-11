@@ -1,4 +1,4 @@
-package org.likide.bootstrap.tasking;
+package org.likide.bootstrap.tasking.stage;
 
 import java.util.Arrays;
 

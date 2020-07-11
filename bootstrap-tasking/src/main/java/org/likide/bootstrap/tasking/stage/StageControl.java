@@ -1,4 +1,4 @@
-package org.likide.bootstrap.tasking;
+package org.likide.bootstrap.tasking.stage;
 
 public class StageControl<P> implements IStageControl<P> {
 
