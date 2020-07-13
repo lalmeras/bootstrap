@@ -8,12 +8,14 @@
 	</parent>
 
 	<artifactId>bootstrap-cli</artifactId>
-	
+
 	<properties>
 		<bootstrap.mainClass>org.likide.bootstrap.Bootstrap</bootstrap.mainClass>
 		<bootstrap.imageName>bootstrap</bootstrap.imageName>
+		
+		<zt-exec.version>1.11</zt-exec.version>
 	</properties>
-	
+
 	<profiles>
 		<profile>
 			<id>logging-tinylog</id>
@@ -36,7 +38,7 @@
 			</dependencies>
 		</profile>
 	</profiles>
-	
+
 	<dependencies>
 		<dependency>
 			<groupId>info.picocli</groupId>
@@ -68,7 +70,7 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
-	
+
 	<build>
 		<plugins>
 			<plugin>
