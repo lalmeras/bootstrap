@@ -1,13 +1,24 @@
 package org.likide.bootstrap;
 
+import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.StringWriter;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CodingErrorAction;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
@@ -207,12 +218,12 @@ public class Bootstrap implements Callable<Integer> {
 			for (FileItem item : fileRegistry.getFiles()) {
 				try {
 					if (!Files.deleteIfExists(item.getPath())) {
-						LOGGER.warn("Temporary file cannot be cleaned: {}", item.getPath());
+						message(MessageLevel.warn, Stage.cleaning, null, "Temporary file cannot be cleaned: %s", item.getPath());
 					} else {
-						LOGGER.info("Temporary file removed: {}", item.getPath());
+						message(MessageLevel.info, Stage.cleaning, null, "Temporary file removed: {}", item.getPath());
 					}
 				} catch (IOException | RuntimeException e) {
-					LOGGER.warn("Temporary file cannot be cleaned: {}", item.getPath(), e);
+					message(MessageLevel.warn, Stage.cleaning, null, "Temporary file cannot be cleaned: {}", item.getPath(), e);
 				}
 			}
 		}
@@ -223,7 +234,7 @@ public class Bootstrap implements Callable<Integer> {
 	 */
 	private Integer doCall() {
 		try {
-			installMiniconda();
+			checkRemoveAndInstallMiniconda();
 		} catch (DownloadFailureException | ProcessFailureException e) {
 			LOGGER.error("Error during miniconda installation", e);
 		}
@@ -238,28 +249,51 @@ public class Bootstrap implements Callable<Integer> {
 	/**
 	 * Miniconda installation (download then execute).
 	 */
-	private void installMiniconda() throws DownloadFailureException, ProcessFailureException {
-		LOGGER.info("Check for Miniconda environment {}", minicondaPrefix);
+	private void checkRemoveAndInstallMiniconda() throws DownloadFailureException, ProcessFailureException {
+		message(MessageLevel.info, Stage.m_check, minicondaPrefix, "check existing installation");
 		Path target = Paths.get(minicondaPrefix);
 		Path conda = Paths.get(target.toString(), "bin/conda");
+		if (resetConda && target.toFile().exists()) {
+			try (Stream<Path> paths = Files.walk(target)) {
+				message(MessageLevel.info, Stage.m_remove, minicondaPrefix, "delete installation");
+				paths.sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
+			} catch (IOException e) {
+				throw new ProcessFailureException(String.format("error deleting %s", target), e);
+			}
+		}
 		if (target.toFile().exists() && conda.toFile().exists() && conda.toFile().canExecute()) {
-			LOGGER.info("Miniconda already installed in {}; skip installation", target);
-			LOGGER.info("Use --reset-conda to overwrite an existing installation");
+			message(MessageLevel.info, Stage.m_check, minicondaPrefix, "already exists; installation skipped");
+			message(MessageLevel.info, Stage.m_check, minicondaPrefix, "use --reset-conda to overwrite");
 		} else if (target.toFile().exists()) {
-			LOGGER.error("Miniconda target folder {} already exists, bin/conda is missing", target);
-			LOGGER.warn("Use --reset-conda to overwrite target folder with a new installation");
+			message(MessageLevel.error, Stage.m_check, minicondaPrefix, "installation exists but bin/conda is missing");
+			message(MessageLevel.warn, Stage.m_check, minicondaPrefix, "use --reset-conda to overwrite");
 		} else {
-			LOGGER.info("Download miniconda installer ({})", minicondaUrl);
+			message(MessageLevel.info, Stage.m_download, minicondaPrefix, "download installer (%s)", minicondaUrl);
 			Path minicondaInstaller = Downloader.download(minicondaUrl, terminal);
 			fileRegistry.addFile(new FileItem(minicondaInstaller));
 			try {
+				message(MessageLevel.info, Stage.m_install, minicondaPrefix, "start");
 				ProcessBuilder processBuilder = new ProcessBuilder();
 				processBuilder.command(minicondaInstaller.toAbsolutePath().toString(),
 						"-u", "-b", "-p", minicondaPrefix);
-				Process process = processBuilder.inheritIO().start();
+				processBuilder.redirectInput();
+				processBuilder.redirectErrorStream(true);
+				processBuilder.redirectOutput();
+				Process process = processBuilder.start();
+				CharsetDecoder cd = Charset.defaultCharset().newDecoder()
+						.onMalformedInput(CodingErrorAction.REPLACE)
+						.onUnmappableCharacter(CodingErrorAction.REPLACE);
+				BufferedReader stream = new BufferedReader(
+						new InputStreamReader(process.getInputStream(), cd));
+				StringWriter writer = new StringWriter();
+				stream.transferTo(writer);
 				int status = process.waitFor();
 				if (status != 0) {
+					message(MessageLevel.error, Stage.m_install, minicondaPrefix, "command output");
+					System.out.println(writer.toString());
 					throw new ProcessFailureException("Miniconda installer error");
+				} else {
+					message(MessageLevel.error, Stage.m_install, minicondaPrefix, "done");
 				}
 			} catch (IOException | InterruptedException e) {
 				if (e instanceof InterruptedException) {
@@ -444,6 +478,65 @@ public class Bootstrap implements Callable<Integer> {
 		SLF4JBridgeHandler.install();
 		LOGGER.debug("Verbosity configuration applied");
 		LOGGER.debug("Terminal width: {}", terminal.getWidth());
+	}
+
+	private void message(MessageLevel level, Stage stage, String context, String message, Object... args) {
+		String formattedMessage;
+		if (args.length > 0) {
+			formattedMessage = String.format(message, args);
+		} else {
+			formattedMessage = message;
+		}
+		String fullMessage;
+		if (message == null) {
+			fullMessage = String.format("%s - %s", getStageName(stage), formattedMessage);
+		} else {
+			fullMessage = String.format("%s [%s] - %s", getStageName(stage), context, formattedMessage);
+		}
+		System.out.println(fullMessage);
+	}
+
+	private String getStageName(Stage stage) {
+		List<Stage> stages = new ArrayList<>();
+		stages.add(stage);
+		Stage parent = stage.parent;
+		while (parent != null) {
+			stages.add(0, parent);
+			parent = parent.parent;
+		}
+		return stages.stream().map(Stage::getName).collect(Collectors.joining("/"));
+	}
+
+	private enum MessageLevel {
+		info,
+		debug,
+		warn,
+		error;
+	}
+
+	private enum Stage {
+		miniconda(null, "miniconda"),
+		environment(null, "environment"),
+		cleaning(null, "cleaning"),
+		m_check(Stage.miniconda, "check"),
+		m_download(Stage.miniconda, "download"),
+		m_remove(Stage.miniconda, "remove"),
+		m_install(Stage.miniconda, "install"),
+		e_check(Stage.environment, "check"),
+		e_remove(Stage.environment, "remove"),
+		e_install(Stage.environment, "install");
+		
+		private final Stage parent;
+		private final String name;
+		
+		private Stage(Stage parent, String name) {
+			this.parent = parent;
+			this.name = name;
+		}
+		
+		private String getName() {
+			return name;
+		}
 	}
 
 }
