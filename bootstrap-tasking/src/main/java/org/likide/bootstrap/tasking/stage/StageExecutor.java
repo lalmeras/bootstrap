@@ -2,10 +2,10 @@ package org.likide.bootstrap.tasking.stage;
 
 import java.util.Arrays;
 
-public class StageExecutor implements IStageExecutor {
+public class StageExecutor<T> implements IStageExecutor<T> {
 
 	@Override
-	public <T> void execute(Stage<T> stage, StageControl<T> control, IStageListener<? super T> listener) {
+	public void execute(Stage<T> stage, StageControl<T> control, IStageListener<? super T> listener) {
 		listener.onBegin(stage, control);
 		if (stage.getCondition() == null || stage.getCondition().test(control.getPayload())) {
 			control.preventSkip();

@@ -1,7 +1,7 @@
 package org.likide.bootstrap.tasking.stage;
 
-public interface IStageExecutor {
+public interface IStageExecutor<T> {
 
-	<T> void execute(Stage<T> stage, StageControl<T> payload, IStageListener<? super T> listener);
+	void execute(Stage<T> stage, StageControl<T> control, IStageListener<? super T> listener);
 
 }
