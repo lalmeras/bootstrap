@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.StringWriter;
+import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CodingErrorAction;
@@ -18,10 +19,12 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.utils.InfoCmp.Capability;
 import org.likide.bootstrap.impl.Constants;
 import org.likide.bootstrap.impl.DownloadFailureException;
 import org.likide.bootstrap.impl.Downloader;
@@ -305,20 +308,71 @@ public class Bootstrap implements Callable<Integer> {
 				.onUnmappableCharacter(CodingErrorAction.REPLACE);
 		BufferedReader stream = new BufferedReader(
 				new InputStreamReader(process.getInputStream(), cd));
-		StringWriter writer = new StringWriter();
+		StringWriter stringWriter = new StringWriter();
+		Writer writer = new StreamWriter(stringWriter);
 		stream.transferTo(writer);
 		int status = process.waitFor();
 		if (status != 0) {
-			message(MessageLevel.error, stage, context, "command output");
-			System.out.println(writer.toString());
+			message(MessageLevel.error, stage, context, "command output on failure");
+			printCommandOutput(stringWriter);
 		} else {
 			if (debug) {
 				message(MessageLevel.debug, stage, context, "command output");
-				System.out.println(writer.toString());
+				printCommandOutput(stringWriter);
 			}
 			message(MessageLevel.info, stage, context, "done");
 		}
 		return status;
+	}
+
+	private class StreamWriter extends Writer {
+		
+		private StringWriter stringWriter;
+		private int newlines = 0;
+		
+		public StreamWriter(StringWriter stringWriter) {
+			this.stringWriter = stringWriter;
+		}
+
+		@Override
+		public void write(char[] cbuf, int off, int len) throws IOException {
+			char[] slice = Arrays.copyOfRange(cbuf, off, off + len);
+			String string = new String(slice);
+			String[] lines = string.split("\n", -1);
+			for (String line : Arrays.copyOfRange(lines, 0, lines.length - 1)) {
+				if (newlines == 5) {
+					try {
+						Thread.sleep(1000);
+						IntStream.range(1, 6).forEach(i -> {
+							terminal.puts(Capability.cursor_up);
+							terminal.puts(Capability.parm_left_cursor, terminal.getWidth());
+							terminal.puts(Capability.clr_eol, 2);
+							terminal.writer().flush();
+						});
+						newlines = 0;
+					} catch (InterruptedException e) {}
+				}
+				newlines++;
+				System.out.println(line);
+			}
+			System.out.print(lines[lines.length - 1]);
+			stringWriter.write(cbuf, off, len);
+		}
+
+		@Override
+		public void flush() throws IOException {
+			stringWriter.flush();
+		}
+
+		@Override
+		public void close() throws IOException {
+			stringWriter.close();
+		}
+		
+	}
+
+	private void printCommandOutput(Writer writer) {
+		Arrays.stream(writer.toString().split("\n")).map(s -> " > " + s).forEach(System.out::println);
 	}
 
 	private boolean checkExistingEnvironment() {
