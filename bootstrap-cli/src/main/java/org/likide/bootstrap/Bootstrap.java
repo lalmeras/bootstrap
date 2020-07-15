@@ -250,50 +250,35 @@ public class Bootstrap implements Callable<Integer> {
 	 * Miniconda installation (download then execute).
 	 */
 	private void checkRemoveAndInstallMiniconda() throws DownloadFailureException, ProcessFailureException {
-		message(MessageLevel.info, Stage.m_check, minicondaPrefix, "check existing installation");
-		Path target = Paths.get(minicondaPrefix);
+		String context = minicondaPrefix;
+		message(MessageLevel.info, Stage.m_check, context, "check existing installation");
+		Path target = Paths.get(context);
 		Path conda = Paths.get(target.toString(), "bin/conda");
 		if (resetConda && target.toFile().exists()) {
 			try (Stream<Path> paths = Files.walk(target)) {
-				message(MessageLevel.info, Stage.m_remove, minicondaPrefix, "delete installation");
+				message(MessageLevel.info, Stage.m_remove, context, "delete installation");
 				paths.sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
 			} catch (IOException e) {
 				throw new ProcessFailureException(String.format("error deleting %s", target), e);
 			}
 		}
 		if (target.toFile().exists() && conda.toFile().exists() && conda.toFile().canExecute()) {
-			message(MessageLevel.info, Stage.m_check, minicondaPrefix, "already exists; installation skipped");
-			message(MessageLevel.info, Stage.m_check, minicondaPrefix, "use --reset-conda to overwrite");
+			message(MessageLevel.info, Stage.m_check, context, "already exists; installation skipped");
+			message(MessageLevel.info, Stage.m_check, context, "use --reset-conda to overwrite");
 		} else if (target.toFile().exists()) {
-			message(MessageLevel.error, Stage.m_check, minicondaPrefix, "installation exists but bin/conda is missing");
-			message(MessageLevel.warn, Stage.m_check, minicondaPrefix, "use --reset-conda to overwrite");
+			message(MessageLevel.error, Stage.m_check, context, "installation exists but bin/conda is missing");
+			message(MessageLevel.warn, Stage.m_check, context, "use --reset-conda to overwrite");
 		} else {
-			message(MessageLevel.info, Stage.m_download, minicondaPrefix, "download installer (%s)", minicondaUrl);
+			message(MessageLevel.info, Stage.m_download, context, "download installer (%s)", minicondaUrl);
 			Path minicondaInstaller = Downloader.download(minicondaUrl, terminal);
 			fileRegistry.addFile(new FileItem(minicondaInstaller));
 			try {
-				message(MessageLevel.info, Stage.m_install, minicondaPrefix, "start");
-				ProcessBuilder processBuilder = new ProcessBuilder();
-				processBuilder.command(minicondaInstaller.toAbsolutePath().toString(),
-						"-u", "-b", "-p", minicondaPrefix);
-				processBuilder.redirectInput();
-				processBuilder.redirectErrorStream(true);
-				processBuilder.redirectOutput();
-				Process process = processBuilder.start();
-				CharsetDecoder cd = Charset.defaultCharset().newDecoder()
-						.onMalformedInput(CodingErrorAction.REPLACE)
-						.onUnmappableCharacter(CodingErrorAction.REPLACE);
-				BufferedReader stream = new BufferedReader(
-						new InputStreamReader(process.getInputStream(), cd));
-				StringWriter writer = new StringWriter();
-				stream.transferTo(writer);
-				int status = process.waitFor();
+				Stage stage = Stage.m_install;
+				String[] command = new String[] { minicondaInstaller.toAbsolutePath().toString(),
+						"-u", "-b", "-p", context };
+				int status = execute(stage, context, command);
 				if (status != 0) {
-					message(MessageLevel.error, Stage.m_install, minicondaPrefix, "command output");
-					System.out.println(writer.toString());
-					throw new ProcessFailureException("Miniconda installer error");
-				} else {
-					message(MessageLevel.error, Stage.m_install, minicondaPrefix, "done");
+					throw new ProcessFailureException(String.format("command failed with status %d", status));
 				}
 			} catch (IOException | InterruptedException e) {
 				if (e instanceof InterruptedException) {
@@ -304,23 +289,55 @@ public class Bootstrap implements Callable<Integer> {
 		}
 	}
 
+	private int execute(Stage stage, String context, String[] command)
+			throws IOException, InterruptedException {
+		ProcessBuilder processBuilder = new ProcessBuilder();
+		processBuilder.command(command);
+		processBuilder.redirectInput();
+		processBuilder.redirectErrorStream(true);
+		processBuilder.redirectOutput();
+		message(MessageLevel.info, stage, context, "launch %s",
+				Arrays.stream(command).map(s -> "'" + s.replace("'", "''\'")+ "'")
+				.collect(Collectors.joining(" ")));
+		Process process = processBuilder.start();
+		CharsetDecoder cd = Charset.defaultCharset().newDecoder()
+				.onMalformedInput(CodingErrorAction.REPLACE)
+				.onUnmappableCharacter(CodingErrorAction.REPLACE);
+		BufferedReader stream = new BufferedReader(
+				new InputStreamReader(process.getInputStream(), cd));
+		StringWriter writer = new StringWriter();
+		stream.transferTo(writer);
+		int status = process.waitFor();
+		if (status != 0) {
+			message(MessageLevel.error, stage, context, "command output");
+			System.out.println(writer.toString());
+		} else {
+			if (debug) {
+				message(MessageLevel.debug, stage, context, "command output");
+				System.out.println(writer.toString());
+			}
+			message(MessageLevel.info, stage, context, "done");
+		}
+		return status;
+	}
+
 	private boolean checkExistingEnvironment() {
-		LOGGER.info("Check for environment {}", envPrefix != null ? envPrefix : envName);
+		String context = envPrefix != null ? envPrefix : envName;
+		message(MessageLevel.info, Stage.e_check, context, "check existing environment");
 		try {
-			ProcessBuilder processBuilder = binCondaProcess("list");
+			List<String> command = binCondaProcess("list");
 			if (envPrefix != null) {
-				processBuilder.command().add("-p");
-				processBuilder.command().add(envPrefix);
+				command.add("-p");
+				command.add(envPrefix);
 			} else {
-				processBuilder.command().add("-n");
-				processBuilder.command().add(envName);
+				command.add("-n");
+				command.add(envName);
 			}
 			if (environmentYml != null) {
-				processBuilder.command().add("-f");
-				processBuilder.command().add(environmentYml);
+				command.add("-f");
+				command.add(environmentYml);
 			}
-			Process process = processBuilder.inheritIO().start();
-			int status = process.waitFor();
+			int status = execute(Stage.e_check, context, command.toArray(new String[0]));
 			return status == 0;
 		} catch (IOException | InterruptedException e) {
 			LOGGER.debug("Error checking environment {}", envPrefix != null ? envPrefix : envName, e);
@@ -336,31 +353,32 @@ public class Bootstrap implements Callable<Integer> {
 	 * Environment creation.
 	 */
 	private void checkRemoveAndInstallEnvironment() throws ProcessFailureException {
+		String context = envPrefix != null ? envPrefix : envName;
 		if (checkExistingEnvironment() && ! resetEnvironment) {
-			LOGGER.info("Environment already exists {}; skip creation", envPrefix != null ? envPrefix : envName);
-			LOGGER.info("Use --reset-env to overwrite an existing environment");
+			message(MessageLevel.info, Stage.e_check, context, "already exists; skip creation");
+			message(MessageLevel.info, Stage.e_check, context, "use --reset-env to overwrite");
 		} else {
 			if (resetEnvironment) {
-				LOGGER.info("Remove exsiting environment");
+				message(MessageLevel.info, Stage.e_remove, context, "remove existing environment");
 				removeEnvironment();
 			}
-			LOGGER.info("Creating environment {}", envPrefix != null ? envPrefix : envName);
+			message(MessageLevel.info, Stage.e_remove, context, "initializing environment");
 			installEnvironment();
 		}
 	}
 
 	private void removeEnvironment() throws ProcessFailureException {
 		try {
-			ProcessBuilder processBuilder = binCondaProcess("env", "remove", "-y");
+			String context = envPrefix != null ? envPrefix : envName;
+			List<String> command = binCondaProcess("env", "remove", "-y");
 			if (envPrefix != null) {
-				processBuilder.command().add("-p");
-				processBuilder.command().add(envPrefix);
+				command.add("-p");
+				command.add(envPrefix);
 			} else {
-				processBuilder.command().add("-n");
-				processBuilder.command().add(envName);
+				command.add("-n");
+				command.add(envName);
 			}
-			Process process = processBuilder.inheritIO().start();
-			int status = process.waitFor();
+			int status = execute(Stage.e_remove, context, command.toArray(new String[0]));
 			if (status != 0) {
 				throw new ProcessFailureException("Environment creation error");
 			}
@@ -374,20 +392,20 @@ public class Bootstrap implements Callable<Integer> {
 
 	private void installEnvironment() throws ProcessFailureException {
 		try {
-			ProcessBuilder processBuilder = binCondaProcess("create", "-y");
+			String context = envPrefix != null ? envPrefix : envName;
+			List<String> command = binCondaProcess("create", "-y");
 			if (envPrefix != null) {
-				processBuilder.command().add("-p");
-				processBuilder.command().add(envPrefix);
+				command.add("-p");
+				command.add(envPrefix);
 			} else {
-				processBuilder.command().add("-n");
-				processBuilder.command().add(envName);
+				command.add("-n");
+				command.add(envName);
 			}
 			if (environmentYml != null) {
-				processBuilder.command().add("-f");
-				processBuilder.command().add(environmentYml);
+				command.add("-f");
+				command.add(environmentYml);
 			}
-			Process process = processBuilder.inheritIO().start();
-			int status = process.waitFor();
+			int status = execute(Stage.e_remove, context, command.toArray(new String[0]));
 			if (status != 0) {
 				throw new ProcessFailureException("Environment creation error");
 			}
@@ -403,11 +421,11 @@ public class Bootstrap implements Callable<Integer> {
 		return Path.of(minicondaPrefix, "bin/conda");
 	}
 
-	private ProcessBuilder binCondaProcess(String... args) {
-		ProcessBuilder processBuilder = new ProcessBuilder();
-		processBuilder.command(binConda().toAbsolutePath().toString());
-		processBuilder.command().addAll(Arrays.asList(args));
-		return processBuilder;
+	private List<String> binCondaProcess(String... args) {
+		List<String> command = new ArrayList<>();
+		command.add(binConda().toAbsolutePath().toString());
+		command.addAll(Arrays.asList(args));
+		return command;
 	}
 
 	/**
@@ -425,9 +443,9 @@ public class Bootstrap implements Callable<Integer> {
 			default:
 				throw new IllegalStateException(String.format("No miniconda download URL for version %s", minicondaVersion));
 			}
-			LOGGER.info("Using default Miniconda URL : {}", minicondaUrl);
+			message(MessageLevel.info, Stage.p_config, null, "Using default Miniconda URL: %s", minicondaUrl);
 		} else {
-			LOGGER.info("Using Miniconda URL : {}", minicondaUrl);
+			message(MessageLevel.info, Stage.p_config, null, "Using Miniconda URL: %s", minicondaUrl);
 		}
 		if (minicondaPrefix == null) {
 			switch (minicondaVersion) {
@@ -440,22 +458,22 @@ public class Bootstrap implements Callable<Integer> {
 			default:
 				throw new IllegalStateException(String.format("No miniconda prefix for version %s", minicondaVersion));
 			}
-			LOGGER.info("Using default Miniconda prefix : {}", minicondaPrefix);
+			message(MessageLevel.info, Stage.p_config, null, "Using default Miniconda prefix: %s", minicondaPrefix);
 		} else {
-			LOGGER.info("Using Miniconda prefix : {}", minicondaPrefix);
+			message(MessageLevel.info, Stage.p_config, null, "Using Miniconda prefix: %s", minicondaPrefix);
 		}
 		if (envName != null) {
-			LOGGER.info("Using environment name : {}", envName);
+			message(MessageLevel.info, Stage.p_config, null, "Using environment name: %s", envName);
 		} else if (envPrefix != null) {
-			LOGGER.info("Using environment prefix : {}", envPrefix);
+			message(MessageLevel.info, Stage.p_config, null, "Using environment prefix: %s", envPrefix);
 		}
 		if (environmentYml == null && ! noEnvironmentYml) {
 			environmentYml = "./environment.yml";
-			LOGGER.info("Using default {} location", environmentYml);
+			message(MessageLevel.info, Stage.p_config, null, "Using default environment definition location: %s", environmentYml);
 		} else if (environmentYml != null) {
-			LOGGER.info("Using environment definition {}", environmentYml);
+			message(MessageLevel.info, Stage.p_config, null, "Using environment definition location: %s", environmentYml);
 		} else {
-			LOGGER.info("Initialize conda environment without environment.yml file");
+			message(MessageLevel.info, Stage.p_config, null, "Initialize conda environment without environment.yml file");
 		}
 	}
 
@@ -476,8 +494,8 @@ public class Bootstrap implements Callable<Integer> {
 		LOGGING_MANAGER.reconfigure(configuration);
 		SLF4JBridgeHandler.removeHandlersForRootLogger();
 		SLF4JBridgeHandler.install();
-		LOGGER.debug("Verbosity configuration applied");
-		LOGGER.debug("Terminal width: {}", terminal.getWidth());
+		message(MessageLevel.debug, Stage.p_logging, null, "Verbosity configuration applied");
+		message(MessageLevel.debug, Stage.p_logging, null, "Terminal width: %d", terminal.getWidth());
 	}
 
 	private void message(MessageLevel level, Stage stage, String context, String message, Object... args) {
@@ -488,10 +506,10 @@ public class Bootstrap implements Callable<Integer> {
 			formattedMessage = message;
 		}
 		String fullMessage;
-		if (message == null) {
-			fullMessage = String.format("%s - %s", getStageName(stage), formattedMessage);
+		if (context == null) {
+			fullMessage = String.format("%-20s - %s", getStageName(stage), formattedMessage);
 		} else {
-			fullMessage = String.format("%s [%s] - %s", getStageName(stage), context, formattedMessage);
+			fullMessage = String.format("%-20s [%s] - %s", getStageName(stage), context, formattedMessage);
 		}
 		System.out.println(fullMessage);
 	}
@@ -515,9 +533,12 @@ public class Bootstrap implements Callable<Integer> {
 	}
 
 	private enum Stage {
+		setup(null, "prepare"),
 		miniconda(null, "miniconda"),
 		environment(null, "environment"),
 		cleaning(null, "cleaning"),
+		p_config(Stage.setup, "config"),
+		p_logging(Stage.setup, "logging"),
 		m_check(Stage.miniconda, "check"),
 		m_download(Stage.miniconda, "download"),
 		m_remove(Stage.miniconda, "remove"),
