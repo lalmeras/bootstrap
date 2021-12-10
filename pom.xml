@@ -32,7 +32,7 @@
 
 		<picocli.version>4.3.0</picocli.version>
 		<jline3.version>3.14.1</jline3.version>
-		<log4j2.version>2.13.3</log4j2.version>
+		<log4j2.version>2.15.0</log4j2.version>
 		<slf4j.version>1.8.0-beta4</slf4j.version>
 		<tinylog.version>2.1.2</tinylog.version>
 
